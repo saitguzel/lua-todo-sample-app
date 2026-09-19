@@ -55,7 +55,7 @@ local function toggle_cell(role, page_key, checked)
   end
 end
 
-function _M.render(state, dispatch)
+function _M.render(state)
   local st = state.rbac
   local matrix = st.matrix
 

@@ -1,4 +1,5 @@
--- F17: router birim testleri — hash parse, guard, open redirect koruması.
+-- F17: router birim testleri — hash parse, guard, open redirect koruması, bundle yükleme.
+local fake = require("helper")
 local router = require("router")
 
 describe("router.parse", function()
@@ -28,6 +29,37 @@ describe("router.parse", function()
   it("boş hash kök yolu olur", function()
     local r = router.parse("")
     assert.equal("/", r.path)
+    assert.equal("dashboard", r.name)
+  end)
+
+  -- tablo bazlı: tüm route'lar eşleşir ("-" içeren yollar dahil — Lua pattern büyü karakteri)
+  local cases = {
+    { "#/login", "login" }, { "#/forgot-password", "forgot_password" },
+    { "#/reset-password?token=abc", "reset_password" }, { "#/", "dashboard" }, { "#/dashboard", "dashboard" },
+    { "#/todos", "todos" }, { "#/todos/new", "todos_new" }, { "#/todos/x1", "todo_edit" },
+    { "#/users", "users" }, { "#/rbac", "rbac" }, { "#/audit-logs?action=x", "audit" },
+    { "#/profile", "profile" }, { "#/todos/a/b", "not_found" }, { "#/audit-logsX", "not_found" },
+  }
+  for _, c in ipairs(cases) do
+    it(c[1] .. " → " .. c[2], function() assert.equal(c[2], router.parse(c[1]).name) end)
+  end
+
+  it("encode_query sıralı ve boşları atar", function()
+    assert.equal("?a=1&b=iki%20kelime", router.encode_query({ b = "iki kelime", a = 1, c = "" }))
+    assert.equal("", router.encode_query({}))
+  end)
+end)
+
+describe("router.load_bundle", function()
+  it("admin view'ları bundle yüklenene kadar çözülmez; yüklenince çözülür", function()
+    fake.reset()
+    local r = router.parse("#/users")
+    assert.is_false(router.bundle_ready(r.route))
+    local co = coroutine.create(function() return router.load_bundle("admin") end)
+    local ok, res = coroutine.resume(co)
+    assert.is_true(ok); assert.is_true(res)
+    assert.same({ "admin" }, fake.loaded_bundles)
+    assert.is_true(router.bundle_ready(r.route))
   end)
 end)
 
@@ -45,7 +77,7 @@ describe("router.guard", function()
     local route = router.parse("#/todos")
     local redirect = router.guard(route, auth_anonymous)
     assert.matches("^#/login%?next=", redirect)
-    assert.matches("next=%23%2Ftodos", redirect) -- "#/todos" URL-encoded
+    assert.truthy(redirect:find("next=%23%2Ftodos", 1, true)) -- "#/todos" URL-encoded
   end)
 
   it("todouser page_key izni yoksa forbidden", function()
@@ -77,6 +109,7 @@ describe("router.safe_next", function()
   it("harici URL reddedilir", function()
     assert.is_nil(router.safe_next("https://evil.com"))
     assert.is_nil(router.safe_next("//evil.com"))
+    assert.is_nil(router.safe_next("#//evil.com"))
     assert.is_nil(router.safe_next("javascript:alert(1)"))
     assert.is_nil(router.safe_next(nil))
   end)

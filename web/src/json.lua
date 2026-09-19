@@ -41,13 +41,17 @@ local function encode_value(v, buf)
       end
       buf[#buf + 1] = "]"
     else
+      -- anahtarlar sıralı: aynı veri her zaman aynı metni üretir (audit diff karşılaştırması buna dayanır)
+      local keys = {}
+      for k in pairs(v) do keys[#keys + 1] = tostring(k) end
+      table.sort(keys)
       buf[#buf + 1] = "{"
-      local first = true
-      for k, val in pairs(v) do
-        if not first then buf[#buf + 1] = "," end
-        first = false
-        encode_value(tostring(k), buf)
+      for i, k in ipairs(keys) do
+        if i > 1 then buf[#buf + 1] = "," end
+        encode_value(k, buf)
         buf[#buf + 1] = ":"
+        local val = v[k]
+        if val == nil then val = v[tonumber(k)] end
         encode_value(val, buf)
       end
       buf[#buf + 1] = "}"

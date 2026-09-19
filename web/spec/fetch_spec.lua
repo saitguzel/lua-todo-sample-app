@@ -13,12 +13,14 @@ local function in_coroutine(fn)
 end
 
 local tokens = nil
+local forbidden_calls = 0
 
 api.configure({
   base = "http://test/api/v1",
   get_tokens = function() return tokens end,
   set_tokens = function(a, r) tokens = { access_token = a, refresh_token = r } end,
   on_logout = function() tokens = nil end,
+  on_forbidden = function() forbidden_calls = forbidden_calls + 1 end,
 })
 
 describe("api request", function()
@@ -109,10 +111,75 @@ describe("api request", function()
     fake.queue_response(401, json.encode({ error = { code = "TOKEN_EXPIRED" } }))
     fake.queue_response(401, json.encode({ error = { code = "TOKEN_REVOKED" } }))
     in_coroutine(function()
-      local data, err = api.get("/todos")
+      local data = api.get("/todos")
       assert.is_nil(data)
     end)
     assert.is_nil(tokens) -- on_logout çalıştı
+  end)
+
+  it("aynı anda 3 istek 401 → TEK /auth/refresh, üçü de tekrarlanır", function()
+    tokens = { access_token = "eski", refresh_token = "r" }
+    fake.async = true
+    local expired = json.encode({ error = { code = "TOKEN_EXPIRED" } })
+    for _ = 1, 3 do fake.queue_response(401, expired) end
+    fake.queue_response(200, json.encode({ data = { access_token = "yeni", refresh_token = "r2" } }))
+    for i = 1, 3 do fake.queue_response(200, json.encode({ data = { id = "t" .. i } })) end
+    local results = {}
+    for i = 1, 3 do
+      coroutine.resume(coroutine.create(function()
+        local data = api.get("/todos/t" .. i)
+        results[#results + 1] = data and data.id
+      end))
+    end
+    fake.flush()
+    local refreshes = 0
+    for _, c in ipairs(fake.calls) do
+      if c.url:find("/auth/refresh", 1, true) then refreshes = refreshes + 1 end
+    end
+    assert.equal(1, refreshes)
+    assert.equal(3, #results)
+    assert.equal("yeni", tokens.access_token)
+  end)
+
+  it("TOKEN_REVOKED refresh denemeden oturumu kapatır", function()
+    tokens = { access_token = "eski", refresh_token = "r" }
+    fake.queue_response(401, json.encode({ error = { code = "TOKEN_REVOKED" } }))
+    in_coroutine(function()
+      local _, err = api.get("/todos")
+      assert.equal("TOKEN_REVOKED", err.code)
+    end)
+    assert.equal(1, #fake.calls)
+    assert.is_nil(tokens)
+  end)
+
+  it("403 FORBIDDEN izin tazeleme kancasını çağırır", function()
+    forbidden_calls = 0
+    fake.queue_response(403, json.encode({ error = { code = "FORBIDDEN" } }))
+    in_coroutine(function() api.get("/users") end)
+    assert.equal(1, forbidden_calls)
+  end)
+
+  it("429 Retry-After err.retry_after olarak döner", function()
+    fake.queue_response(429, json.encode({ error = { code = "RATE_LIMITED" } }), { retry_after = "42" })
+    in_coroutine(function()
+      local _, err = api.post("/auth/login", {})
+      assert.equal("RATE_LIMITED", err.code)
+      assert.equal(42, err.retry_after)
+    end)
+  end)
+
+  it("tekil yanıt meta'yı üçüncü değer olarak döner", function()
+    fake.queue_response(200, json.encode({ data = { matrix = { admin = {} } }, meta = { cache_ttl = 60 } }))
+    in_coroutine(function()
+      local data, err, meta = api.get("/rbac/matrix")
+      assert.is_nil(err)
+      assert.is_table(data.matrix)
+      assert.equal(60, meta.cache_ttl)
+    end)
+  end)
+
+  it("coroutine dışında çağrı açık hata verir", function()
+    assert.has_error(function() api.get("/todos") end)
   end)
 
   it("204 → true döner", function()
@@ -125,6 +192,6 @@ describe("api request", function()
   end)
 
   it("query encoder url-encode yapar", function()
-    assert.equal("?q=fatura%20%C3%B6de&page=2", api._encode_query({ q = "fatura öde", page = 2 }))
+    assert.equal("?page=2&q=fatura%20%C3%B6de", api._encode_query({ q = "fatura öde", page = 2 })) -- sıralı
   end)
 end)

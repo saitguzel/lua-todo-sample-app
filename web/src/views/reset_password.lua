@@ -27,7 +27,7 @@ function _M.enter(route)
   end
 end
 
-function _M.render(state, dispatch)
+function _M.render(state)
   local errors = (state.ui.form_errors or {}).reset or {}
   local done = state.ui.reset_done or false
 

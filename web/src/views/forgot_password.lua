@@ -9,7 +9,7 @@ _M.title = "Şifremi unuttum"
 _M.layout = false
 _M.public = true
 
-function _M.render(state, dispatch)
+function _M.render(state)
   local errors = (state.ui.form_errors or {}).forgot or {}
   local sent = state.ui.forgot_sent or false
 

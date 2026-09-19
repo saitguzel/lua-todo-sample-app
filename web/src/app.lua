@@ -158,7 +158,7 @@ local function reduce_todos(s, a)
     if p.op == "create" then
       -- listenin başına eklenen temp satırı kaldır, indeksleri düzelt
       local items, by_id = {}, {}
-      for i, t in ipairs(s.items) do
+      for _, t in ipairs(s.items) do
         if t.id ~= a.id then
           items[#items + 1] = t
           by_id[t.id] = #items
@@ -169,7 +169,7 @@ local function reduce_todos(s, a)
       -- satırı eski indeksine geri koy
       local items = {}
       local inserted = false
-      for i, t in ipairs(s.items) do
+      for _, t in ipairs(s.items) do
         if #items + 1 == p.index then
           items[#items + 1] = p.snapshot
           inserted = true

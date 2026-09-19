@@ -55,7 +55,7 @@ end, "Yeni kullanıcı")
 shortcuts.register("users", "/", function() dom.focus("user-search"); return true end, "Ara")
 
 -- form modalı
-local function user_form(state, dispatch)
+local function user_form(state)
   local errors = (state.ui.form_errors or {}).user or {}
   local editing = state.users.editing
   local user = nil
@@ -102,11 +102,11 @@ local function user_form(state, dispatch)
           return
         end
         app.dispatch({ type = "USER_SAVE_REQUESTED" })
-        local data, err
+        local _, err
         if is_edit then
-          data, err = api.put("/users/" .. user.id, clean)
+          _, err = api.put("/users/" .. user.id, clean)
         else
-          data, err = api.post("/users", clean)
+          _, err = api.post("/users", clean)
         end
         if err then
           app.dispatch({ type = "USER_SAVE_FAILED" })
@@ -290,7 +290,7 @@ function _M.render(state, dispatch)
   local modal = nil
   if st.editing then
     modal = require("components.modal").dialog("user-edit",
-      st.editing == "new" and "Yeni kullanıcı" or "Kullanıcı düzenle", user_form(state, dispatch), close_form)
+      st.editing == "new" and "Yeni kullanıcı" or "Kullanıcı düzenle", user_form(state), close_form)
   end
 
   local select_cls = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]"

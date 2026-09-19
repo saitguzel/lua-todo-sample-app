@@ -16,14 +16,42 @@ describe("audit diff_fields", function()
     local rows = audit._diff_fields({ a = 1 }, { b = 2 })
     local by_field = {}
     for _, r in ipairs(rows) do by_field[r.field] = r end
-    assert.is_nil(by_field.a.old); assert.equal(1, by_field.a.new)
-    assert.equal(1, by_field.b.old); assert.is_nil(by_field.b.new)
+    assert.equal(1, by_field.a.old); assert.is_nil(by_field.a.new)   -- silinen
+    assert.is_nil(by_field.b.old); assert.equal(2, by_field.b.new)   -- eklenen
+    assert.is_true(by_field.a.changed and by_field.b.changed)
   end)
 
   it("nil girişlerle çalışır", function()
     local rows = audit._diff_fields(nil, { x = 1 })
     assert.equal(1, #rows)
     assert.equal("x", rows[1].field)
+  end)
+end)
+
+describe("todos filtre ↔ URL query", function()
+  local todos = require("views.todos")
+
+  it("gidiş-dönüş eşitliği; varsayılanlar URL'ye yazılmaz", function()
+    local q = { status = "pending", priority = "high", q = "fatura öde", tag = "iş", sort = "due_date", page = "3" }
+    local f = todos.filters_from_query(q)
+    assert.equal(3, f.page)
+    assert.same(q, todos.query_from_filters(f))
+    assert.same({}, todos.query_from_filters(todos.filters_from_query({})))
+  end)
+end)
+
+describe("audit tarih aralığı", function()
+  local audit = require("views.audit_logs")
+  it("bitiş başlangıçtan önce olamaz", function()
+    assert.is_true(audit.valid_range("2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z"))
+    assert.is_false(audit.valid_range("2026-01-02T00:00:00Z", "2026-01-01T00:00:00Z"))
+    assert.is_true(audit.valid_range(nil, "2026-01-01T00:00:00Z"))
+  end)
+end)
+
+describe("login demo kutusu", function()
+  it("build_info yokken (test/prod) gösterilmez", function()
+    assert.is_false(require("views.login").show_demo)
   end)
 end)
 
@@ -69,7 +97,7 @@ describe("storage.lua", function()
   end)
 
   it("bozuk JSON'da default döner", function()
-    fake.storage_set("todo.auth", "{bozuk")
+    fake.storage.set("todo.auth", "{bozuk")
     assert.equals(nil, storage.get("auth"))
     assert.equal("fallback", storage.get("auth", "fallback"))
   end)

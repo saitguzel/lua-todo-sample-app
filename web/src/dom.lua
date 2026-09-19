@@ -174,8 +174,8 @@ end
 local function diff_props(old, new)
   local h = new._h
   for k, v in pairs(new.props) do
-    if is_event(k) or k == "key" then
-      -- olaylar sync_events'te; key yalnızca diff ipucu
+    -- olaylar sync_events'te; key yalnızca diff ipucu (DOM'a yazılmaz)
+    if is_event(k) or k == "key" then -- luacheck: ignore 542
     elseif k == "class" then
       local new_cls = class_string(v)
       if class_string(old.props.class) ~= new_cls then js.dom.setAttr(h, "class", new_cls) end
@@ -227,7 +227,7 @@ local function diff_keyed(parent_h, olds, news)
   for o, n in pairs(used) do matched[n] = o end
   for i, n in ipairs(news) do
     local o = matched[n]
-    if o then patch_vnode(parent_h, o, n) else create(n) end
+    if o then patch_vnode(o, n) else create(n) end
     js.dom.insertAt(parent_h, n._h, i - 1) -- yerindeyse JS tarafı dokunmaz
   end
 end
@@ -245,7 +245,7 @@ local function diff_children(parent_h, olds, news)
       create(n)
       js.dom.append(parent_h, n._h)
     else
-      patch_vnode(parent_h, o, n)
+      patch_vnode(o, n)
     end
   end
 end
@@ -254,7 +254,7 @@ end
 
 -- Eski ve yeni ağacı karşılaştırıp minimum DOM işlemi uygular; yeni ağacı döner.
 -- Odak/imleç korunur: aynı düğüm yeniden kullanılır (yalnızca prop'lar güncellenir).
-patch_vnode = function(parent_h, old, new)
+patch_vnode = function(old, new)
   if old.text ~= nil and new.text ~= nil then
     if old.text ~= new.text then js.dom.setText(old._h, new.text) end
     new._h = old._h
@@ -283,7 +283,7 @@ function dom.patch(root_handle, old_vnode, new_vnode)
   if not old_vnode then
     return dom.mount(root_handle, new_vnode)
   end
-  return patch_vnode(root_handle, old_vnode, new_vnode)
+  return patch_vnode(old_vnode, new_vnode)
 end
 
 -- Tek seferlik yardımcılar (render dışı)
