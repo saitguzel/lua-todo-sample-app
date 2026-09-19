@@ -1,0 +1,27 @@
+.env
+*.rock
+/lua_modules/
+/.luarocks/
+luacov.*.out
+node_modules/
+web/public/app.wasm
+web/public/bundle.json
+web/public/bundle.*.json
+web/public/glue.js
+web/public/dist/
+web/dist/
+api/logs/
+api/*_temp/
+playwright-report/
+test-results/
+.DS_Store
+*.swp
+api/public/swagger.json
+.env.prod
+secrets/
+backups/
+
+# TLS özel anahtar/sertifika
+deploy/proxy/certs/*.pem
+deploy/proxy/certs/*.key
+api/bench/results/

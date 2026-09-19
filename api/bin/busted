@@ -1,0 +1,7 @@
+#!/bin/sh
+# busted'ı resty (OpenResty) altında koşturur: ngx.*, resty.* ve shared dict'ler gerçek (F11 §4)
+DIR=$(cd "$(dirname "$0")" && pwd)
+exec resty \
+  --shdict 'rbac_cache 1m' --shdict 'jwt_denylist 1m' --shdict 'rate_limit 1m' \
+  --shdict 'job_locks 1m' --shdict 'metrics 1m' \
+  "$DIR/busted.lua" "$@"

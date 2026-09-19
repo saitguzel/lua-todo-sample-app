@@ -1,0 +1,8 @@
+# Sistem uç noktaları (liveness/readiness/dokümantasyon) istemci hatası üretmez; 4xx yanıtı
+# uydurmak yerine operation-4xx-response kuralından bilinçli olarak muaf tutulur (F9).
+api/public/swagger.json:
+  operation-4xx-response:
+    - '#/paths/~1health/get/responses'
+    - '#/paths/~1health~1ready/get/responses'
+    - '#/paths/~1swagger/get/responses'
+    - '#/paths/~1swagger.json/get/responses'

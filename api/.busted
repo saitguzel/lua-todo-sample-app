@@ -1,0 +1,9 @@
+return {
+  _all = {
+    lpath = "src/?.lua;src/?/init.lua;spec/?.lua",
+    helper = "spec/helpers/bootstrap.lua",
+  },
+  -- unit: yalnızca spec/ kökündeki dosyalar; integration/ dizini dışlanır
+  unit = { ROOT = { "spec" }, recursive = false },
+  integration = { ROOT = { "spec/integration" } },
+}

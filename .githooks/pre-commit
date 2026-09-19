@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Staged Lua dosyalarını luacheck ile denetler; hata varsa commit'i durdurur.
+set -eu
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.lua$' || true)
+[ -z "$files" ] && exit 0
+if ! command -v luacheck >/dev/null 2>&1; then
+  echo "luacheck bulunamadı: 'luarocks install luacheck' veya 'make lint' (docker) kullanın" >&2
+  exit 1
+fi
+# shellcheck disable=SC2086
+luacheck $files

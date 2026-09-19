@@ -1,0 +1,112 @@
+/* F12: tema değişkenleri (light/dark), temel düzen, skeleton animasyonu, odak halkası.
+   Tailwind sınıfları bu değişkenlere referans verir: bg-[var(--bg)]. */
+:root, [data-theme="light"] {
+  --bg: #f8fafc; --bg-elev: #ffffff; --fg: #0f172a; --fg-muted: #475569;
+  --border: #e2e8f0; --primary: #4f46e5; --primary-fg: #ffffff;
+  --danger: #b91c1c; --success: #166534; --warning: #92400e;
+  --focus: #6366f1; --skeleton: #e2e8f0; --skeleton-hi: #f1f5f9;
+  --radius: 0.5rem; --shadow: 0 1px 3px rgb(0 0 0 / .08);
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #0b1120; --bg-elev: #111827; --fg: #e5e7eb; --fg-muted: #9ca3af;
+  --border: #1f2937; --primary: #818cf8; --primary-fg: #0b1120;
+  --danger: #f87171; --success: #4ade80; --warning: #fbbf24;
+  --focus: #a5b4fc; --skeleton: #1f2937; --skeleton-hi: #374151;
+  color-scheme: dark;
+}
+
+html { overflow-wrap: anywhere; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+/* Erişilebilirlik: odak halkası ve skip-link */
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--bg-elev); color: var(--fg); padding: .5rem 1rem; border-radius: var(--radius);
+}
+.skip-link:focus { left: .5rem; top: .5rem; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Boot ekranı: CSS-only spinner */
+.boot {
+  display: flex; align-items: center; justify-content: center; gap: .75rem;
+  min-height: 50vh; color: var(--fg-muted);
+}
+.boot::before {
+  content: ""; width: 1.5rem; height: 1.5rem; border-radius: 9999px;
+  border: 3px solid var(--skeleton); border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Skeleton shimmer (F16 bileşenleri kullanır) */
+.skeleton {
+  background: linear-gradient(90deg, var(--skeleton) 25%, var(--skeleton-hi) 50%, var(--skeleton) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius); color: transparent; user-select: none;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Rozetler (öncelik/durum/rol) */
+.badge {
+  display: inline-flex; align-items: center; padding: .125rem .5rem;
+  border-radius: 9999px; font-size: .75rem; font-weight: 600; line-height: 1.25rem;
+  border: 1px solid var(--border);
+}
+.badge-high { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.badge-medium { background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning); }
+.badge-low { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.badge-completed { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+.badge-in_progress { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.badge-pending { background: color-mix(in srgb, var(--fg-muted) 12%, transparent); color: var(--fg-muted); }
+.badge-role-admin { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+.badge-role-todouser { background: color-mix(in srgb, var(--fg-muted) 14%, transparent); color: var(--fg-muted); }
+
+/* Form alanı hata durumu (aria-invalid ile bağlanır) */
+.field-error { color: var(--danger); font-size: .875rem; margin-top: .25rem; }
+
+/* F16: iskelet yalnızca yükleme 200 ms'yi aşarsa görünür (JS zamanlayıcı yok) */
+.skeleton-delayed { animation: skeleton-appear 0s linear 200ms both; }
+@keyframes skeleton-appear { from { visibility: hidden; } to { visibility: visible; } }
+
+/* Statik uygulama kabuğu (index.html) */
+.boot-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.boot-bar { height: 3.5rem; border-bottom: 1px solid var(--border); background: var(--bg-elev); }
+
+/* Toast'lar: sağ alt köşe, üstte */
+#toast-root {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 70;
+  display: flex; flex-direction: column; align-items: flex-end; gap: .25rem;
+  max-width: calc(100vw - 2rem); pointer-events: none;
+}
+#toast-root .toast { pointer-events: auto; }
+
+/* Native dialog (F16): arka plan karartma + açıkken sayfa kaydırma kilidi */
+dialog[data-modal] { margin: auto; max-height: 90dvh; overflow-y: auto; }
+dialog[data-modal]::backdrop { background: rgb(0 0 0 / .5); }
+body:has(dialog[open]) { overflow: hidden; }
+dialog.drawer { margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(28rem, 100vw); max-width: 100vw; }
+
+/* Mobil: yan menü üstte açılır, modal tam ekran, tablo → kart, 44px dokunma hedefi */
+@media (max-width: 767px) {
+  .sidebar-open { position: fixed; inset: 3.5rem auto 0 0; z-index: 40; box-shadow: var(--shadow); }
+  dialog[data-modal] { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+  .responsive-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td,
+  .responsive-table th[scope="row"] { display: block; width: 100%; }
+  .responsive-table tr { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .75rem; padding: .5rem .75rem; }
+  .responsive-table td[data-label]::before, .responsive-table th[data-label]::before {
+    content: attr(data-label); display: block; font-size: .75rem; color: var(--fg-muted);
+  }
+  button, [role="button"], a.nav-link, input[type="checkbox"] { min-height: 44px; min-width: 44px; }
+}
+
+/* Hareket azaltma tercihi: tüm animasyonları kapat */
+@media (prefers-reduced-motion: reduce) {
+  .boot::before, .skeleton { animation: none; }
+  * { transition-duration: .01ms !important; }
+}

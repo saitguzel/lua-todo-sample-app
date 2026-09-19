@@ -1,0 +1,2 @@
+# Günlük yedek 02:00 UTC (AUDIT_CLEANUP_HOUR=3'ten önce; o günün verisi silinmeden yedeklensin)
+0 2 * * * sh /scripts/backup.sh daily >> /backups/backup.log 2>&1

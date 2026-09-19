@@ -1,0 +1,43 @@
+name: todo-lua
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports: ["127.0.0.1:${DB_HOST_PORT:-25432}:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    command: ["postgres", "-c", "max_connections=200"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports: ["127.0.0.1:${MAILHOG_UI_HOST_PORT:-28025}:8025"]
+
+  api:
+    build: { context: ., dockerfile: api/Dockerfile, target: dev }
+    env_file: .env
+    ports: ["${API_HOST_PORT:-28080}:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - ./api/src:/app/src
+      - ./api/conf:/app/conf
+      - ./api/migrations:/app/migrations
+      - ./api/seeds:/app/seeds
+      - ./api/public:/app/public
+      - ./shared/src:/app/lib/todo_shared
+
+  web:
+    build: ./web
+    ports: ["${WEB_HOST_PORT:-28000}:80"]
+    volumes: [./web/public:/usr/share/nginx/html:ro]
+
+volumes:
+  pgdata:

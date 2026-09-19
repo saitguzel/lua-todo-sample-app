@@ -1,0 +1,125 @@
+# Production compose — secrets (Docker secrets, *_FILE), kaynak limitleri, healthcheck (F18).
+# Gerekli: .env.prod (bkz. .env.prod.example), secrets/{db_password,jwt_secret,smtp_password}, deploy/proxy/certs/
+# Yerel deneme: HTTP_PORT=28088 HTTPS_PORT=28443 TAG=local docker compose -f docker-compose.prod.yml up -d --build
+name: todo-prod
+
+x-restart: &restart { restart: unless-stopped }
+x-logging: &logging
+  logging: { driver: json-file, options: { max-size: "20m", max-file: "5" } }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    <<: [*restart, *logging]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-todo}
+      POSTGRES_USER: ${DB_USER:-todo}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    # Bağlantı bütçesi: replika(2) × worker × DB_POOL_SIZE ≤ max_connections − 10 (README)
+    command: ["postgres", "-c", "max_connections=100", "-c", "shared_buffers=256MB",
+              "-c", "log_min_duration_statement=500"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-todo} -d ${DB_NAME:-todo}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy: { resources: { limits: { cpus: "1.0", memory: 1g } } }
+    networks: [backend]          # dışarıya port AÇILMAZ
+
+  api:
+    image: ghcr.io/${GHCR_OWNER:-local}/todo-api:${TAG:?TAG gerekli}
+    build: { context: ., dockerfile: api/Dockerfile, target: prod }
+    <<: [*restart, *logging]
+    env_file: .env.prod
+    environment:
+      APP_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      SMTP_PASSWORD_FILE: /run/secrets/smtp_password
+      TRUSTED_PROXIES: 172.30.0.10
+    secrets: [db_password, jwt_secret, smtp_password]
+    depends_on:
+      postgres: { condition: service_healthy }
+    read_only: true
+    # nginx -p /app: pid (/tmp), log ve *_temp yolları yazılabilir olmalı (tmpfs root sahipli → 1777)
+    tmpfs:
+      - /tmp:mode=1777
+      - /app/temp:mode=1777
+      - /app/logs:mode=1777
+      - /app/client_body_temp:mode=1777
+      - /app/proxy_temp:mode=1777
+      - /app/fastcgi_temp:mode=1777
+      - /app/uwsgi_temp:mode=1777
+      - /app/scgi_temp:mode=1777
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    deploy: { replicas: 2, resources: { limits: { cpus: "1.0", memory: 512m } } }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    networks: [backend, frontend]
+
+  web:
+    image: ghcr.io/${GHCR_OWNER:-local}/todo-web:${TAG:?TAG gerekli}
+    build: { context: ., dockerfile: web/Dockerfile }
+    <<: [*restart, *logging]
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    networks: [frontend]
+
+  proxy:
+    image: nginx:1.27-alpine
+    <<: [*restart, *logging]
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"] # host'a açılan tek servis
+    volumes:
+      - ./deploy/proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/proxy/certs:/etc/nginx/certs:ro            # certbot / acme.sh ile yenilenir
+      - ./deploy/proxy/certbot:/var/www/certbot:ro          # certbot certonly --webroot -w deploy/proxy/certbot
+    depends_on: [api, web]
+    networks:
+      frontend: { ipv4_address: 172.30.0.10 }              # api TRUSTED_PROXIES ile aynı
+
+  backup:
+    image: todo-backup:${TAG:?TAG gerekli}
+    build: ./deploy/backup                                 # postgres:16-alpine + age
+    <<: [*restart, *logging]
+    # ro mount'ta exec biti güvenilmez → betikler sh ile çağrılır
+    entrypoint: ["/bin/sh", "-c", "sh /scripts/backup.sh daily && exec crond -f -l 8"]
+    volumes:
+      - ./deploy/backup:/scripts:ro
+      - ./deploy/backup/crontab:/etc/crontabs/root:ro
+      - backups:/backups
+    secrets: [db_password]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${DB_USER:-todo}
+      PGDATABASE: ${DB_NAME:-todo}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}     # boş değilse dump age ile şifrelenir
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [backend]
+
+secrets:
+  db_password:   { file: ./secrets/db_password }
+  jwt_secret:    { file: ./secrets/jwt_secret }
+  smtp_password: { file: ./secrets/smtp_password }
+
+volumes:
+  pgdata: {}
+  backups: {}
+
+networks:
+  backend: { internal: true }
+  frontend:
+    ipam: { config: [{ subnet: 172.30.0.0/24 }] }

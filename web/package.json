@@ -1,0 +1,24 @@
+{
+  "name": "todo-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "./build-wasm.sh",
+    "build:prod": "MODE=production ./build-wasm.sh",
+    "dev": "./build-wasm.sh && npx serve public -l 28000",
+    "size": "./scripts/size-report.sh",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.3",
+    "wasmoon": "^1.16.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.48.0",
+    "esbuild": "^0.24.0",
+    "serve": "^14.2.0",
+    "tailwindcss": "^3.4.17"
+  }
+}
