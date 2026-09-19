@@ -3,6 +3,7 @@ local dom = require("dom")
 local app = require("app")
 local api = require("fetch")
 local theme_toggle = require("components.theme_toggle")
+local shortcuts = require("shortcuts")
 
 local _M = {}
 _M.title = "Profil"
@@ -35,7 +36,8 @@ function _M.render(state, dispatch)
   local shortcut_rows = {}
   for _, s in ipairs(SHORTCUTS) do
     shortcut_rows[#shortcut_rows + 1] = dom.tr({},
-      dom.td({ class = "py-1 pr-4" }, dom.kbd({ class = "px-2 py-0.5 border border-[var(--border)] rounded text-sm" }, s[1])),
+      dom.td({ class = "py-1 pr-4" }, dom.kbd({ class = "px-2 py-0.5 border border-[var(--border)] rounded text-sm" },
+        s[1])),
       dom.td({ class = "py-1 text-[var(--fg-muted)]" }, s[2]))
   end
 
@@ -53,6 +55,17 @@ function _M.render(state, dispatch)
         dom.dd({}, type(user.last_login_at) == "string" and js.format_date(user.last_login_at) or "—"))),
     card("profile-theme", "Görünüm", theme_toggle.render(state, dispatch)),
     card("profile-keys", "Klavye kısayolları",
+      dom.div({ class = "flex items-center gap-2 mb-3" },
+        dom.input({
+          id = "shortcuts-enabled", type = "checkbox", class = "w-5 h-5",
+          checked = shortcuts.enabled() and "checked" or nil,
+          onchange = function(e)
+            shortcuts.set_enabled(e.checked == true)
+            local msg = e.checked and "Tek tuş kısayolları açık" or "Tek tuş kısayolları kapalı"
+            app.toast("info", msg, { timeout = 2000 })
+          end,
+        }),
+        dom.label({ ["for"] = "shortcuts-enabled" }, "Tek tuş kısayollarını kullan")),
       dom.table({ class = "text-sm" },
         dom.caption({ class = "sr-only" }, "Klavye kısayolları"),
         dom.thead({ class = "sr-only" }, dom.tr({},
@@ -60,7 +73,8 @@ function _M.render(state, dispatch)
         dom.tbody({}, shortcut_rows))),
     dom.button({
       type = "button",
-      class = "px-4 py-2 rounded-[var(--radius)] border border-[var(--danger)] text-[var(--danger)] hover:bg-[var(--bg-elev)]",
+      class = "px-4 py-2 rounded-[var(--radius)] border border-[var(--danger)] text-[var(--danger)] " ..
+        "hover:bg-[var(--bg-elev)]",
       onclick = function() app.logout() end,
     }, "Çıkış yap"))
 end

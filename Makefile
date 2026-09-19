@@ -10,10 +10,10 @@ IT = docker run --rm --network host --env-file .env -e APP_ENV=test -v "$(CURDIR
 LUA54_IMAGE ?= nickblah/lua:5.4-luarocks
 # busted'ın C bağımlılıkları (luasystem) için derleyici gerekir
 LUA54_BUSTED = apt-get update -qq && apt-get install -y -qq gcc libc6-dev >/dev/null && luarocks install busted >/dev/null
-LINT_PATHS = api/src shared/src web/src api/spec shared/spec api/bench api/bin/busted.lua
+LINT_PATHS = api/src shared/src web/src web/spec api/spec shared/spec api/bench api/bin/busted.lua
 
 .PHONY: setup hooks ports.check up down logs db.psql lint test test.unit test.shared test.api test.integration \
-	test.web test.e2e web.test web.e2e bench spec.lint openapi.dump openapi.lint web.build web.dev web.size \
+	test.web test.e2e web.test web.e2e bench spec.lint openapi.dump openapi.lint web.build web.build.prod web.dev web.size \
 	db.migrate db.rollback db.status db.seed db.reset api.dev api.reload conf.env job.cleanup up.e2e backup.verify \
 	rockspecs
 
@@ -82,11 +82,14 @@ openapi.lint spec.lint: openapi.dump
 web.build:
 	cd web && ./build-wasm.sh
 
+web.build.prod:
+	cd web && MODE=production ./build-wasm.sh
+
 web.dev:
 	cd web && npm run dev
 
 web.size:
-	@if [ -x web/scripts/size.sh ]; then web/scripts/size.sh; else \
+	@if [ -x web/scripts/size-report.sh ]; then web/scripts/size-report.sh; else \
 	  test -d web/public || { echo "HATA: web/public yok; önce make web.build" >&2; exit 1; }; \
 	  find web/public -type f \( -name '*.js' -o -name '*.json' -o -name '*.wasm' -o -name '*.css' -o -name '*.html' \) \
 	    ! -name '*.gz' ! -name '*.br' | sort | while read -r f; do \
@@ -131,6 +134,7 @@ job.cleanup:
 up.e2e:
 	@test -f docker-compose.e2e.yml || { echo "HATA: docker-compose.e2e.yml yok (F17)" >&2; exit 1; }
 	docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait
+	$(MAKE) db.migrate db.seed
 
 backup.verify:
 	sh deploy/backup/verify.sh

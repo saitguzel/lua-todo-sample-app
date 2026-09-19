@@ -27,8 +27,14 @@ WASM=$(hashname "$OUT/app.wasm.tmp" app wasm)
 # --- 2. Lua bundle'ları: admin view'ları ayrı (todouser hiç indirmez — F17 #7) ---
 MIN=""; [ "$MODE" = "production" ] && MIN="--minify"
 ADMIN_VIEWS="src/views/users.lua,src/views/rbac_matrix.lua,src/views/audit_logs.lua"
-# build_info: derleme modu bundle'a gömülür; demo hesap kutusu yalnızca production dışında (login.lua)
-DEMO=true; [ "$MODE" = "production" ] && DEMO=false
+# build_info: derleme modu bundle'a gömülür. Demo hesaplar (seed kullanıcıları) YALNIZCA production dışı build'de;
+# prod bundle'ında kimlik bilgisi hiç bulunmaz (prod'da SEED_DEFAULTS=false → bu hesaplar zaten yok).
+if [ "$MODE" = "production" ]; then
+  DEMO=false
+else
+  DEMO='{ { label = "Yönetici", email = "admin@todoapp.local", password = "Admin123!" },
+    { label = "Kullanıcı", email = "user@todoapp.local", password = "User123!" } }'
+fi
 printf -- '-- build-wasm.sh tarafından üretilir\nreturn { mode = "%s", demo = %s }\n' "$MODE" "$DEMO" > "$OUT/build_info.lua"
 node scripts/bundle-lua.mjs $MIN --exclude "$ADMIN_VIEWS" src= ../shared/src=todo_shared. \
   "$OUT/build_info.lua=build_info" > "$OUT/bundle.tmp"

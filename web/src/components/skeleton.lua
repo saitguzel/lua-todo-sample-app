@@ -18,7 +18,8 @@ function skeleton.cards(n)
       dom.div({ class = "skeleton h-4 w-20 mb-2", ["aria-hidden"] = "true" }),
       dom.div({ class = "skeleton h-8 w-12", ["aria-hidden"] = "true" }))
   end
-  return dom.ul({ role = "list", ["aria-busy"] = "true", class = "skeleton-delayed grid grid-cols-2 lg:grid-cols-5 gap-3" },
+  return dom.ul({ role = "list", ["aria-busy"] = "true",
+    class = "skeleton-delayed grid grid-cols-2 lg:grid-cols-5 gap-3" },
     dom.li({ class = "sr-only" }, announce()), items)
 end
 
@@ -29,7 +30,8 @@ function skeleton.rows(n, cols)
     local cells = {}
     for j = 1, (cols or 5) do
       cells[j] = dom.td({ class = "py-2 pr-3" },
-        dom.div({ class = "skeleton h-4", style = "width:" .. (60 + (i * 7 + j * 5) % 40) .. "%", ["aria-hidden"] = "true" }))
+        dom.div({ class = "skeleton h-4", style = "width:" .. (60 + (i * 7 + j * 5) % 40) .. "%",
+          ["aria-hidden"] = "true" }))
     end
     rows[i] = dom.tr({}, dom.list(cells))
   end

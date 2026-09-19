@@ -1,0 +1,2 @@
+-- luacov: yalnızca frontend kaynakları raporlanır (busted --coverage spec && luacov)
+return { include = { "src/" }, reportfile = "luacov.report.out" }

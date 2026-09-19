@@ -4,10 +4,7 @@
 /.luarocks/
 luacov.*.out
 node_modules/
-web/public/app.wasm
-web/public/bundle.json
 web/public/bundle.*.json
-web/public/glue.js
 web/public/dist/
 web/dist/
 api/logs/
@@ -25,3 +22,5 @@ backups/
 deploy/proxy/certs/*.pem
 deploy/proxy/certs/*.key
 api/bench/results/
+web/public/index.html
+web/luacov.*

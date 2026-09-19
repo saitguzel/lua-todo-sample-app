@@ -36,7 +36,8 @@ function modal.dialog(id, title, content, on_close, opts)
     ["data-modal"] = "1",
     ["aria-labelledby"] = id .. "-title",
     ["aria-describedby"] = opts.describedby,
-    class = opts.class or "modal bg-[var(--bg-elev)] text-[var(--fg)] border border-[var(--border)] rounded-[var(--radius)] p-6 w-full max-w-lg",
+    class = opts.class or "modal bg-[var(--bg-elev)] text-[var(--fg)] border border-[var(--border)] " ..
+      "rounded-[var(--radius)] p-6 w-full max-w-lg",
     oncancel = function() if on_close then on_close() end end,
   },
     dom.div({ class = "flex items-start justify-between gap-4 mb-4" },
@@ -100,7 +101,8 @@ function modal.help()
           dom.td({ class = "py-1 text-[var(--fg-muted)]" }, s.description))
       end
       rows[#rows + 1] = dom.tr({},
-        dom.td({ class = "py-1 pr-4" }, dom.kbd({ class = "px-2 py-0.5 border border-[var(--border)] rounded text-sm" }, "Esc")),
+        dom.td({ class = "py-1 pr-4" },
+          dom.kbd({ class = "px-2 py-0.5 border border-[var(--border)] rounded text-sm" }, "Esc")),
         dom.td({ class = "py-1 text-[var(--fg-muted)]" }, "Pencereyi kapat"))
       return dom.table({ class = "text-sm" },
         dom.caption({ class = "sr-only" }, "Kısayollar"),

@@ -1,0 +1,18 @@
+# F17: E2E test yığını — yalnızca override (yeni servis eklenmez).
+# Kullanım: docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait
+#           ardından migrate + seed (make up.e2e ikisini de yapar).
+# Postgres tmpfs: her ayağa kalkışta temiz DB; testler kendi benzersiz verisini üretir.
+services:
+  postgres:
+    volumes: !reset []
+    tmpfs: [/var/lib/postgresql/data]
+
+  api:
+    environment:
+      APP_ENV: test
+      SEED_DEFAULTS: "true"
+      # 4 Playwright projesi aynı seed hesaplarıyla paralel giriş yapar; login rate limit'i testi kilitlemesin
+      # (rate-limit davranışı backend entegrasyon testlerinde doğrulanır — F11)
+      LOGIN_RATE_LIMIT: "1000"
+      # kısa access TTL: sessiz refresh akışı E2E'de de çalışır (auth.spec)
+      JWT_ACCESS_TTL: "60"

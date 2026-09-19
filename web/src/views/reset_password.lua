@@ -50,7 +50,8 @@ function _M.render(state)
 
   return dom.main({ class = "min-h-screen flex items-center justify-center p-4", id = "main", tabindex = "-1" },
     dom.form({
-      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] p-6 shadow-[var(--shadow)]",
+      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] p-6 " ..
+        "shadow-[var(--shadow)]",
       ["aria-labelledby"] = "reset-title",
       onsubmit = function()
         local p1 = dom.value("new-password") or ""
@@ -118,7 +119,8 @@ function _M.submit(token, password, confirm)
       app.dispatch({ type = "FORM_ERRORS_SET", form = "reset",
         errors = { _ = { "Bağlantının süresi dolmuş veya kullanılmış" } } })
     else
-      app.dispatch({ type = "FORM_ERRORS_SET", form = "reset", errors = errs or { _ = { protocol.message(err.code) } } })
+      app.dispatch({ type = "FORM_ERRORS_SET", form = "reset",
+        errors = errs or { _ = { protocol.message(err.code) } } })
     end
     return
   end

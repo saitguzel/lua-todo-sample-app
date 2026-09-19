@@ -11,11 +11,12 @@ local layout = {}
 
 -- Menü öğeleri; görünürlük tamamen izne bağlı (F15)
 local NAV = {
-  { href = "#/",           label = "Pano",         page_key = "dashboard",   icon = "▦", routes = { dashboard = true } },
-  { href = "#/todos",      label = "Todo'lar",     page_key = "todos.list",  icon = "✓", routes = { todos = true, todos_new = true, todo_edit = true } },
-  { href = "#/users",      label = "Kullanıcılar", page_key = "users.list",  icon = "👥", routes = { users = true } },
-  { href = "#/rbac",       label = "Yetkiler",     page_key = "rbac.matrix", icon = "🔐", routes = { rbac = true } },
-  { href = "#/audit-logs", label = "Denetim",      page_key = "audit.logs",  icon = "☰", routes = { audit = true } },
+  { href = "#/", label = "Pano", page_key = "dashboard", icon = "▦", routes = { dashboard = true } },
+  { href = "#/todos", label = "Todo'lar", page_key = "todos.list", icon = "✓",
+    routes = { todos = true, todos_new = true, todo_edit = true } },
+  { href = "#/users", label = "Kullanıcılar", page_key = "users.list", icon = "👥", routes = { users = true } },
+  { href = "#/rbac", label = "Yetkiler", page_key = "rbac.matrix", icon = "🔐", routes = { rbac = true } },
+  { href = "#/audit-logs", label = "Denetim", page_key = "audit.logs", icon = "☰", routes = { audit = true } },
 }
 
 function layout.render(state, dispatch, content, title)
@@ -28,7 +29,9 @@ function layout.render(state, dispatch, content, title)
       nav_items[#nav_items + 1] = dom.li({},
         dom.a({
           href = item.href,
-          class = active and "nav-link flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] bg-[var(--primary)] text-[var(--primary-fg)]"
+          class = active
+            and "nav-link flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] bg-[var(--primary)] " ..
+              "text-[var(--primary-fg)]"
             or "nav-link flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] hover:bg-[var(--bg)]",
           ["aria-current"] = active and "page" or nil,
         }, dom.span({ ["aria-hidden"] = "true" }, item.icon), item.label))
@@ -62,7 +65,8 @@ function layout.render(state, dispatch, content, title)
             ["aria-current"] = state.route.name == "profile" and "page" or nil }, user.email or "Profil"),
           dom.button({
             type = "button",
-            class = "text-sm px-3 py-1.5 rounded-[var(--radius)] border border-[var(--border)] hover:bg-[var(--bg-elev)]",
+            class = "text-sm px-3 py-1.5 rounded-[var(--radius)] border border-[var(--border)] " ..
+              "hover:bg-[var(--bg-elev)]",
             onclick = function() app.logout() end,
           }, "Çıkış"))),
       dom.main({ id = "main", tabindex = "-1", class = "flex-1 p-4 md:p-6 min-w-0",

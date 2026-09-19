@@ -13,7 +13,8 @@ assert(_VERSION == "Lua 5.4", "Beklenmeyen Lua sürümü: " .. tostring(_VERSION
 local ok, err = xpcall(function()
   local types = require("todo_shared.types") -- paketleme doğrulaması
   local app = require("app")
-  app.start({ apiBase = (js.config() and require("json").decode(js.config()).apiBase) or "http://localhost:28080/api/v1" })
+  local cfg = js.config() and require("json").decode(js.config()) or {}
+  app.start({ apiBase = cfg.apiBase or "http://localhost:28080/api/v1" })
   -- İlk yüklemede shared'in geldiğini göster (F12 stub kanıtı app.start içinde)
   log("info", "main.lua basladi, PAGES=", #types.PAGES)
 end, debug.traceback)

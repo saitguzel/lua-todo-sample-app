@@ -3,20 +3,24 @@
 local router = {}
 
 -- Route tablosu (kanonik, faz-13 §4.5). Sıra önemli: sabit segmentler parametreliden önce.
--- bundle = "admin": view ayrı bundle-admin.<hash>.json'da (F17 #7), ilk girişte yüklenir.
+-- layout = false: layout'suz tam sayfa (auth ekranları). bundle = "admin": view ayrı bundle-admin.<hash>.json'da
+-- (F17 #7), ilk girişte yüklenir.
 local ROUTES = {
-  { hash = "#/login",           name = "login",           view = "views.login",           auth = "guest-only", layout = false },
-  { hash = "#/forgot-password", name = "forgot_password", view = "views.forgot_password", auth = "guest-only", layout = false },
-  { hash = "#/reset-password",  name = "reset_password",  view = "views.reset_password",  auth = false,        layout = false },
-  { hash = "#/",                name = "dashboard",       view = "views.dashboard",       auth = true, page_key = "dashboard",    layout = true },
-  { hash = "#/dashboard",       name = "dashboard",       view = "views.dashboard",       auth = true, page_key = "dashboard",    layout = true },
-  { hash = "#/todos/new",       name = "todos_new",       view = "views.todos",           auth = true, page_key = "todos.create", layout = true },
-  { hash = "#/todos/:id",       name = "todo_edit",       view = "views.todos",           auth = true, page_key = "todos.edit",   layout = true },
-  { hash = "#/todos",           name = "todos",           view = "views.todos",           auth = true, page_key = "todos.list",   layout = true },
-  { hash = "#/users",           name = "users",           view = "views.users",           auth = true, page_key = "users.list",   layout = true, bundle = "admin" },
-  { hash = "#/rbac",            name = "rbac",            view = "views.rbac_matrix",     auth = true, page_key = "rbac.matrix",  layout = true, bundle = "admin" },
-  { hash = "#/audit-logs",      name = "audit",           view = "views.audit_logs",      auth = true, page_key = "audit.logs",   layout = true, bundle = "admin" },
-  { hash = "#/profile",         name = "profile",         view = "views.profile",         auth = true, page_key = nil,            layout = true },
+  { hash = "#/login", name = "login", view = "views.login", auth = "guest-only", layout = false },
+  { hash = "#/forgot-password", name = "forgot_password", view = "views.forgot_password", auth = "guest-only",
+    layout = false },
+  { hash = "#/reset-password", name = "reset_password", view = "views.reset_password", auth = false, layout = false },
+  { hash = "#/", name = "dashboard", view = "views.dashboard", auth = true, page_key = "dashboard" },
+  { hash = "#/dashboard", name = "dashboard", view = "views.dashboard", auth = true, page_key = "dashboard" },
+  { hash = "#/todos/new", name = "todos_new", view = "views.todos", auth = true, page_key = "todos.create" },
+  { hash = "#/todos/:id", name = "todo_edit", view = "views.todos", auth = true, page_key = "todos.edit" },
+  { hash = "#/todos", name = "todos", view = "views.todos", auth = true, page_key = "todos.list" },
+  { hash = "#/users", name = "users", view = "views.users", auth = true, page_key = "users.list", bundle = "admin" },
+  { hash = "#/rbac", name = "rbac", view = "views.rbac_matrix", auth = true, page_key = "rbac.matrix",
+    bundle = "admin" },
+  { hash = "#/audit-logs", name = "audit", view = "views.audit_logs", auth = true, page_key = "audit.logs",
+    bundle = "admin" },
+  { hash = "#/profile", name = "profile", view = "views.profile", auth = true }, -- page_key yok: her oturum
 }
 
 router.ROUTES = ROUTES

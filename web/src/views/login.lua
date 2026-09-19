@@ -12,13 +12,12 @@ _M.title = "Giriş"
 _M.layout = false
 _M.public = true
 
--- Demo hesaplar yalnızca production olmayan build'de (build_info.demo; prod'da SEED_DEFAULTS=false → hesaplar yok)
-local DEMO_ACCOUNTS = {
-  { label = "Yönetici", email = "admin@todoapp.local", password = "Admin123!" },
-  { label = "Kullanıcı", email = "user@todoapp.local", password = "User123!" },
-}
+-- Demo hesaplar yalnızca production olmayan build'de: listeyi build-wasm.sh build_info modülüne gömer
+-- (prod bundle'ında kimlik bilgisi yok; prod'da SEED_DEFAULTS=false olduğundan hesaplar da yok)
 local info_ok, build_info = pcall(require, "build_info")
-_M.show_demo = info_ok and type(build_info) == "table" and build_info.demo == true
+local DEMO_ACCOUNTS = info_ok and type(build_info) == "table" and type(build_info.demo) == "table"
+  and build_info.demo or nil
+_M.show_demo = DEMO_ACCOUNTS ~= nil
 
 local function demo_box()
   local rows = {}
@@ -50,9 +49,11 @@ function _M.render(state, dispatch)
   local errors = (state.ui.form_errors or {}).login or {}
   local busy = state.ui.busy.login or false
 
-  return dom.main({ class = "min-h-screen flex flex-col items-center justify-center p-4", id = "main", tabindex = "-1" },
+  return dom.main({ class = "min-h-screen flex flex-col items-center justify-center p-4", id = "main",
+    tabindex = "-1" },
     dom.form({
-      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow)] p-6",
+      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] " ..
+        "shadow-[var(--shadow)] p-6",
       ["aria-labelledby"] = "login-title",
       onsubmit = function()
         -- form değerleri DOM'dan okunur (her tuşta global render olmasın); native submit glue.js'te engelli

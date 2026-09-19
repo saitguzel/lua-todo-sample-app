@@ -111,7 +111,8 @@ local function user_form(state)
         if err then
           app.dispatch({ type = "USER_SAVE_FAILED" })
           if err.code == "EMAIL_TAKEN" then
-            app.dispatch({ type = "FORM_ERRORS_SET", form = "user", errors = { email = { "Bu e-posta zaten kullanılıyor" } } })
+            app.dispatch({ type = "FORM_ERRORS_SET", form = "user",
+              errors = { email = { "Bu e-posta zaten kullanılıyor" } } })
             js.timer.after(0, function() dom.focus("user-email") end)
           elseif err.code == "VALIDATION_FAILED" then
             app.dispatch({ type = "FORM_ERRORS_SET", form = "user", errors = err.details or {} })
@@ -222,7 +223,7 @@ local function fmt(ts)
   return type(ts) == "string" and js.format_date(ts) or "—"
 end
 
-function _M.render(state, dispatch)
+function _M.render(state)
   local st = state.users
   local meta = st.meta or {}
   local me = state.auth.user or {}
@@ -255,7 +256,9 @@ function _M.render(state, dispatch)
             onclick = function() app.dispatch({ type = "USER_EDIT_OPENED", id = u.id }) end,
           }, "✎"),
           can_manage and dom.button({
-            type = "button", class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded text-[var(--danger)] hover:bg-[var(--bg-elev)] disabled:opacity-40",
+            type = "button",
+              class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded text-[var(--danger)] hover:bg-[var(--bg-elev)] " ..
+                "disabled:opacity-40",
             ["aria-label"] = (u.email or "") .. " sil",
             disabled = is_self and "disabled" or nil,
             title = is_self and "Kendi hesabınızı silemezsiniz" or nil,
@@ -293,7 +296,8 @@ function _M.render(state, dispatch)
       st.editing == "new" and "Yeni kullanıcı" or "Kullanıcı düzenle", user_form(state), close_form)
   end
 
-  local select_cls = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]"
+  local select_cls = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] " ..
+    "text-sm text-[var(--fg)]"
   return dom.section({ ["aria-labelledby"] = "users-title" },
     dom.header({ class = "flex items-center justify-between gap-2 mb-4" },
       dom.h1({ id = "users-title", class = "text-2xl font-bold", tabindex = "-1" },
@@ -304,7 +308,8 @@ function _M.render(state, dispatch)
         ["aria-keyshortcuts"] = "n",
         onclick = function() app.dispatch({ type = "USER_EDIT_OPENED", id = "new" }) end,
       }, "+ Kullanıcı ekle")),
-    dom.form({ role = "search", ["aria-label"] = "Kullanıcı filtreleri", class = "flex flex-wrap items-end gap-2 mb-4" },
+    dom.form({ role = "search", ["aria-label"] = "Kullanıcı filtreleri",
+      class = "flex flex-wrap items-end gap-2 mb-4" },
       dom.label({ class = "flex flex-col text-xs text-[var(--fg-muted)] flex-1 min-w-40" }, "Ara",
         dom.input({
           type = "search", id = "user-search", placeholder = "E-posta veya ad… (/)", ["aria-keyshortcuts"] = "/",
@@ -317,13 +322,15 @@ function _M.render(state, dispatch)
         })),
       dom.div({ class = "flex flex-col" },
         dom.label({ ["for"] = "user-filter-1", class = "text-xs text-[var(--fg-muted)]" }, "Rol"),
-        dom.select({ id = "user-filter-1", class = select_cls, onchange = function(e) set_filters({ role = e.value or "" }) end },
+        dom.select({ id = "user-filter-1", value = f.role or "", class = select_cls,
+          onchange = function(e) set_filters({ role = e.value or "" }) end },
           dom.option({ value = "" }, "Tüm roller"),
           dom.option({ value = "admin", selected = f.role == "admin" and "selected" or nil }, "admin"),
           dom.option({ value = "todouser", selected = f.role == "todouser" and "selected" or nil }, "todouser"))),
       dom.div({ class = "flex flex-col" },
         dom.label({ ["for"] = "user-filter-2", class = "text-xs text-[var(--fg-muted)]" }, "Durum"),
-        dom.select({ id = "user-filter-2", class = select_cls, onchange = function(e) set_filters({ is_active = e.value or "" }) end },
+        dom.select({ id = "user-filter-2", value = f.is_active or "", class = select_cls,
+          onchange = function(e) set_filters({ is_active = e.value or "" }) end },
           dom.option({ value = "" }, "Tümü"),
           dom.option({ value = "true", selected = f.is_active == "true" and "selected" or nil }, "Aktif"),
           dom.option({ value = "false", selected = f.is_active == "false" and "selected" or nil }, "Pasif")))),

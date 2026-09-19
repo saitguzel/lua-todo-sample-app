@@ -79,6 +79,17 @@ describe("shortcuts", function()
     assert.is_true(shortcuts.handle_key("/", false, false, false))
   end)
 
+  it("kullanıcı kapatınca hiçbir kısayol çalışmaz (WCAG 2.1.4)", function()
+    local called = false
+    shortcuts.register("todos", "n", function() called = true end, "")
+    shortcuts.set_enabled(false)
+    shortcuts.handle_key("n", false, false, false)
+    assert.is_false(called)
+    shortcuts.set_enabled(true)
+    shortcuts.handle_key("n", false, false, false)
+    assert.is_true(called)
+  end)
+
   it("list kayıtları döner", function()
     shortcuts.register("todos", "n", function() end, "Yeni todo")
     shortcuts.register("global", "?", function() end, "Yardım")

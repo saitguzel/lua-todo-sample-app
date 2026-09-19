@@ -110,6 +110,13 @@ local function open_detail(log)
   end)
 end
 
+-- Maskelenmiş (***) veya parola alanları italik/soluk gösterilir
+local function masked_style(field, value)
+  if tostring(field):lower():find("password") or json_encode(value) == '"***"' then
+    return "font-style:italic;color:var(--fg-muted)"
+  end
+end
+
 -- detay çekmecesi
 local function detail_drawer(state)
   local log = state.audit.detail
@@ -138,11 +145,8 @@ local function detail_drawer(state)
     },
       dom.td({ class = "py-1 pr-3 font-medium" }, tostring(r.field),
         r.changed and dom.span({ class = "sr-only" }, " (değişti)")),
-      dom.td({ class = "py-1 pr-3 text-[var(--fg-muted)]",
-        style = (tostring(r.field):lower():find("password") or json_encode(r.old) == '"***"') and "font-style:italic;color:var(--fg-muted)" or nil },
-        json_encode(r.old) or "—"),
-      dom.td({ class = "py-1", style = (tostring(r.field):lower():find("password") or json_encode(r.new) == '"***"') and "font-style:italic;color:var(--fg-muted)" or nil },
-        json_encode(r.new) or "—"))
+      dom.td({ class = "py-1 pr-3 text-[var(--fg-muted)]", style = masked_style(r.field, r.old) }, json_encode(r.old)),
+      dom.td({ class = "py-1", style = masked_style(r.field, r.new) }, json_encode(r.new)))
   end
 
   return modal.dialog("audit-detail", (log.action or "?") .. " · #" .. tostring(log.id or "?"), dom.div({},
@@ -191,7 +195,8 @@ local function export_csv(filters)
     -- Authorization gerektiğinden blob ile iner; bitince (veya hata) buton normale döner
     local ok, err = api.download("/audit/export", "audit-export.csv", q)
     app.dispatch({ type = "AUDIT_EXPORT_FINISHED" })
-    if ok then app.toast("success", "CSV indirildi") else app.toast("error", "CSV indirilemedi: " .. tostring(err.message)) end
+    if ok then app.toast("success", "CSV indirildi") else app.toast("error",
+      "CSV indirilemedi: " .. tostring(err.message)) end
   end)
 end
 
@@ -200,7 +205,8 @@ function _M.render(state)
   local meta = st.meta or {}
   local f = st.filters or {}
   local layout = require("views.layout")
-  local field_cls = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]"
+  local field_cls = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] " ..
+    "text-sm text-[var(--fg)]"
 
   local action_opts = { dom.option({ value = "" }, "Tüm eylemler") }
   for _, a in ipairs(types.AUDIT_ACTIONS) do
@@ -260,16 +266,19 @@ function _M.render(state)
     dom.form({ role = "search", ["aria-label"] = "Audit filtreleri", class = "flex flex-wrap items-end gap-2 mb-4" },
       dom.div({ class = "flex flex-col" },
         dom.label({ ["for"] = "audit-filter-1", class = "text-xs text-[var(--fg-muted)]" }, "Eylem"),
-        dom.select({ id = "audit-filter-1", class = field_cls, onchange = function(e) set_filters({ action = e.value or "" }) end }, action_opts)),
+        dom.select({ id = "audit-filter-1", value = f.action or "", class = field_cls,
+          onchange = function(e) set_filters({ action = e.value or "" }) end }, action_opts)),
       dom.div({ class = "flex flex-col" },
         dom.label({ ["for"] = "audit-filter-2", class = "text-xs text-[var(--fg-muted)]" }, "Durum"),
-        dom.select({ id = "audit-filter-2", class = field_cls, onchange = function(e) set_filters({ status = e.value or "" }) end },
+        dom.select({ id = "audit-filter-2", value = f.status or "", class = field_cls,
+          onchange = function(e) set_filters({ status = e.value or "" }) end },
           dom.option({ value = "" }, "Tümü"),
           dom.option({ value = "success", selected = f.status == "success" and "selected" or nil }, "Başarılı"),
           dom.option({ value = "failure", selected = f.status == "failure" and "selected" or nil }, "Başarısız"))),
       dom.div({ class = "flex flex-col" },
         dom.label({ ["for"] = "audit-filter-3", class = "text-xs text-[var(--fg-muted)]" }, "Varlık türü"),
-        dom.select({ id = "audit-filter-3", class = field_cls, onchange = function(e) set_filters({ entity_type = e.value or "" }) end },
+        dom.select({ id = "audit-filter-3", value = f.entity_type or "", class = field_cls,
+          onchange = function(e) set_filters({ entity_type = e.value or "" }) end },
           entity_opts)),
       dom.label({ class = "flex flex-col text-xs text-[var(--fg-muted)] flex-1 min-w-40" }, "Kullanıcı e-postası",
         dom.input({

@@ -17,7 +17,8 @@ function _M.render(state)
     -- Başarı mesajı role="status" bölgesinde; focus mesaja taşınır (a11y)
     return dom.main({ class = "min-h-screen flex items-center justify-center p-4", id = "main", tabindex = "-1" },
       dom.div({ class = "w-full max-w-sm text-center" },
-        dom.div({ role = "status", tabindex = "-1", id = "forgot-status", class = "bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] p-6" },
+        dom.div({ role = "status", tabindex = "-1", id = "forgot-status",
+          class = "bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] p-6" },
           dom.h1({ class = "text-xl font-bold mb-2" }, "Bağlantı gönderildi"),
           dom.p({ class = "text-[var(--fg-muted)]" },
             "Bu e-posta sistemde kayıtlıysa birkaç dakika içinde sıfırlama bağlantısı gönderilecek.")),
@@ -27,7 +28,8 @@ function _M.render(state)
 
   return dom.main({ class = "min-h-screen flex items-center justify-center p-4", id = "main", tabindex = "-1" },
     dom.form({
-      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow)] p-6",
+      class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] " ..
+        "shadow-[var(--shadow)] p-6",
       ["aria-labelledby"] = "forgot-title",
       onsubmit = function()
         local email = dom.value("forgot-email") or ""

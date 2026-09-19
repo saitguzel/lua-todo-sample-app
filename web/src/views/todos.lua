@@ -283,7 +283,8 @@ local function todo_form(state)
         if err then
           app.dispatch({ type = "TODO_ROLLBACK", id = todo.id })
           app.dispatch({ type = "FORM_ERRORS_SET", form = "todo", errors = err.details or {} })
-          app.toast("error", err.code == "TODO_NOT_FOUND" and "Bu todo artık mevcut değil" or protocol.message(err.code))
+          app.toast("error",
+            err.code == "TODO_NOT_FOUND" and "Bu todo artık mevcut değil" or protocol.message(err.code))
           return
         end
         app.dispatch({ type = "TODO_UPDATE_CONFIRMED", todo = data })
@@ -335,7 +336,8 @@ local function todo_form(state)
     dom.div({ class = "flex justify-end gap-2 pt-2" },
       dom.button({ type = "button", class = "px-4 py-2 rounded-[var(--radius)] border border-[var(--border)]",
         onclick = close_editor }, "İptal"),
-      dom.button({ type = "submit", class = "px-4 py-2 rounded-[var(--radius)] bg-[var(--primary)] text-[var(--primary-fg)]" },
+      dom.button({ type = "submit",
+        class = "px-4 py-2 rounded-[var(--radius)] bg-[var(--primary)] text-[var(--primary-fg)]" },
         is_edit and "Kaydet" or "Ekle")))
 end
 
@@ -387,12 +389,15 @@ local function todo_item(state, t)
         tags)),
     can_edit and dom.div({ class = "flex gap-1" },
       dom.button({
-        type = "button", class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded-[var(--radius)] hover:bg-[var(--bg-elev)]",
+        type = "button",
+          class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded-[var(--radius)] hover:bg-[var(--bg-elev)]",
         ["aria-label"] = "'" .. title .. "' düzenle", ["aria-keyshortcuts"] = "e",
         onclick = function() open_edit(t.id) end,
       }, "✎"),
       dom.button({
-        type = "button", class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded-[var(--radius)] text-[var(--danger)] hover:bg-[var(--bg-elev)]",
+        type = "button",
+          class = "px-2 py-1 min-w-11 min-h-11 text-sm rounded-[var(--radius)] text-[var(--danger)] " ..
+            "hover:bg-[var(--bg-elev)]",
         ["aria-label"] = "'" .. title .. "' sil", ["aria-keyshortcuts"] = "d",
         onclick = function() confirm_delete(t) end,
       }, "🗑")))
@@ -407,8 +412,9 @@ local function select_filter(label, key, current, options)
   return dom.div({ class = "flex flex-col" },
     dom.label({ ["for"] = id, class = "text-xs text-[var(--fg-muted)]" }, label),
     dom.select({
-      id = id,
-      class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]",
+      id = id, value = current or "", -- kontrollü: geri tuşunda da URL ile senkron
+      class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm " ..
+        "text-[var(--fg)]",
       onchange = function(e) set_filters({ [key] = e.value or "" }) end,
     }, opts))
 end
@@ -427,7 +433,8 @@ function _M.render(state)
       dom.input({
         type = "search", id = "todo-search", placeholder = "Başlık veya açıklama… (/)",
         ["aria-keyshortcuts"] = "/",
-        class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]",
+        class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm " ..
+          "text-[var(--fg)]",
         value = f.q or "",
         oninput = function(e)
           -- 300 ms debounce
@@ -438,12 +445,14 @@ function _M.render(state)
       })),
     select_filter("Durum", "status", f.status,
       { { "pending", "Bekliyor" }, { "in_progress", "Devam ediyor" }, { "completed", "Tamamlandı" } }),
-    select_filter("Öncelik", "priority", f.priority, { { "high", "Yüksek" }, { "medium", "Orta" }, { "low", "Düşük" } }),
+    select_filter("Öncelik", "priority", f.priority, { { "high", "Yüksek" }, { "medium", "Orta" }, { "low",
+      "Düşük" } }),
     dom.div({ class = "flex flex-col" },
       dom.label({ ["for"] = "todo-sort", class = "text-xs text-[var(--fg-muted)]" }, "Sıralama"),
       dom.select({
-        id = "todo-sort",
-        class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]",
+        id = "todo-sort", value = f.sort or "-created_at",
+        class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm " ..
+          "text-[var(--fg)]",
         onchange = function(e) set_filters({ sort = e.value }) end,
       },
         dom.option({ value = "-created_at", selected = f.sort == "-created_at" and "selected" or nil }, "En yeni"),

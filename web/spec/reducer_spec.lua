@@ -107,14 +107,16 @@ describe("rbac reducer", function()
 
   it("CELL_TOGGLED optimistic uygular + snapshot saklar", function()
     local s = run({ type = "RBAC_LOADED", matrix = matrix, cache_ttl = 60 })
-    s = app.root_reducer(s, { type = "RBAC_CELL_TOGGLED", role = "todouser", page_key = "users.list", can_access = true })
+    s = app.root_reducer(s, { type = "RBAC_CELL_TOGGLED", role = "todouser", page_key = "users.list",
+      can_access = true })
     assert.is_true(s.rbac.matrix.todouser["users.list"])
     assert.equals(false, s.rbac.pending["todouser:users.list"].old)
   end)
 
   it("CELL_ROLLBACK eski değere döner", function()
     local s = run({ type = "RBAC_LOADED", matrix = matrix, cache_ttl = 60 })
-    s = app.root_reducer(s, { type = "RBAC_CELL_TOGGLED", role = "todouser", page_key = "users.list", can_access = true })
+    s = app.root_reducer(s, { type = "RBAC_CELL_TOGGLED", role = "todouser", page_key = "users.list",
+      can_access = true })
     s = app.root_reducer(s, { type = "RBAC_CELL_ROLLBACK", role = "todouser", page_key = "users.list" })
     assert.is_false(s.rbac.matrix.todouser["users.list"])
     assert.is_nil(s.rbac.pending["todouser:users.list"])
@@ -170,9 +172,77 @@ describe("route/ui reducer", function()
 
   it("USER_LOADED kullanıcı ve izinleri günceller", function()
     local s = run({ type = "LOGIN_SUCCEEDED", user = { id = "u1", email = "a" }, permissions = {} })
-    s = app.root_reducer(s, { type = "USER_LOADED", user = { id = "u1", email = "b" }, permissions = { dashboard = true } })
+    s = app.root_reducer(s, { type = "USER_LOADED", user = { id = "u1", email = "b" },
+      permissions = { dashboard = true } })
     assert.equal("b", s.auth.user.email)
     assert.is_true(s.auth.permissions.dashboard)
+  end)
+end)
+
+describe("diğer dilimler", function()
+  local function chain(actions)
+    local s = app.initial_state
+    for _, a in ipairs(actions) do s = app.root_reducer(s, a) end
+    return s
+  end
+
+  it("todos: dolu listeye optimistic create, onay/silme onayı, hata ve filtre", function()
+    local s = chain({
+      { type = "TODOS_LOADED", items = { { id = "t1" }, { id = "t2" } }, meta = {} },
+      { type = "TODO_OPTIMISTIC_CREATE", todo = { id = "tmp" } },
+    })
+    assert.equal("tmp", s.todos.items[1].id)
+    assert.equal(3, s.todos.by_id.t2)
+    s = app.root_reducer(s, { type = "TODO_OPTIMISTIC_UPDATE", id = "t1", patch = { title = "x" } })
+    s = app.root_reducer(s, { type = "TODO_UPDATE_CONFIRMED", todo = { id = "t1", title = "y" } })
+    assert.equal("y", s.todos.items[s.todos.by_id.t1].title)
+    assert.is_nil(s.todos.pending.t1)
+    s = app.root_reducer(s, { type = "TODO_OPTIMISTIC_DELETE", id = "t2" })
+    s = app.root_reducer(s, { type = "TODO_DELETE_CONFIRMED", id = "t2" })
+    assert.is_nil(s.todos.pending.t2)
+    assert.equal(2, #s.todos.items)
+    s = app.root_reducer(s, { type = "TODOS_FAILED", error = { code = "X" } })
+    assert.equal("error", s.todos.status)
+    s = app.root_reducer(s, { type = "TODO_FILTERS_CHANGED", patch = { status = "pending" } })
+    assert.equal("pending", s.todos.filters.status)
+  end)
+
+  it("users: kaydetme döngüsü ve silme", function()
+    local s = chain({
+      { type = "USERS_LOADED", items = { { id = "a" }, { id = "b" } }, meta = { total = 2 } },
+      { type = "USER_EDIT_OPENED", id = "a" },
+      { type = "USER_SAVE_REQUESTED" },
+    })
+    assert.is_true(s.users.saving)
+    s = app.root_reducer(s, { type = "USER_SAVE_FAILED" })
+    assert.is_false(s.users.saving)
+    s = app.root_reducer(s, { type = "USER_EDIT_CLOSED" })
+    assert.is_nil(s.users.editing)
+    assert.equal(s, app.root_reducer(s, { type = "USER_EDIT_CLOSED" })) -- zaten kapalı: referans korunur
+    s = app.root_reducer(s, { type = "USER_REMOVED", id = "a" })
+    assert.equal(1, #s.users.items)
+    assert.equal(1, s.users.by_id.b)
+    assert.equal(s, app.root_reducer(s, { type = "USER_REMOVED", id = "yok" }))
+  end)
+
+  it("rbac: hücre onayı ve matris değişimi", function()
+    local s = chain({
+      { type = "RBAC_LOADED", matrix = { todouser = { dashboard = true } } },
+      { type = "RBAC_CELL_TOGGLED", role = "todouser", page_key = "dashboard", can_access = false },
+      { type = "RBAC_CELL_CONFIRMED", role = "todouser", page_key = "dashboard" },
+    })
+    assert.is_nil(s.rbac.pending["todouser:dashboard"])
+    assert.equal(s, app.root_reducer(s, { type = "RBAC_CELL_ROLLBACK", role = "todouser", page_key = "dashboard" }))
+    s = app.root_reducer(s, { type = "RBAC_MATRIX_REPLACED", matrix = { admin = {} } })
+    assert.same({ admin = {} }, s.rbac.matrix)
+  end)
+
+  it("ui: sidebar, busy, modal sayacı", function()
+    local s = chain({ { type = "SIDEBAR_TOGGLED" }, { type = "BUSY_SET", key = "x", value = true },
+      { type = "MODAL_CHANGED" } })
+    assert.is_true(s.ui.sidebar_open)
+    assert.is_true(s.ui.busy.x)
+    assert.equal(1, s.ui.modal_seq)
   end)
 end)
 

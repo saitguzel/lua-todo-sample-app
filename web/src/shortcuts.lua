@@ -3,6 +3,15 @@
 
 local shortcuts = {}
 
+-- WCAG 2.1.4: tek tuş kısayolları kullanıcı tarafından kapatılabilir (profil ayarı, localStorage'da kalıcı)
+local STORAGE_KEY = "todo.shortcuts"
+function shortcuts.enabled()
+  return js.storage.get(STORAGE_KEY) ~= "off"
+end
+function shortcuts.set_enabled(on)
+  if on then js.storage.remove(STORAGE_KEY) else js.storage.set(STORAGE_KEY, "off") end
+end
+
 -- scope -> { [key] = { fn, description } }
 local registry = {}
 
@@ -45,8 +54,8 @@ end
 
 -- app.lua js.keyboard.onKey'den çağrılır. Dönüş true → JS e.preventDefault() yapar.
 function shortcuts.handle_key(key, typing, ctrl, alt)
-  -- tarayıcı kısayollarıyla çakışmasın
-  if ctrl or alt then return false end
+  -- tarayıcı kısayollarıyla çakışmasın; kullanıcı kapattıysa hiçbiri çalışmaz
+  if ctrl or alt or not shortcuts.enabled() then return false end
   -- editable hedefte tek harfliler tetiklenmez (WCAG 2.1.4); yalnız Esc çalışır
   if typing and key ~= "Escape" then return false end
   -- açık native dialog Esc'i kendi cancel olayıyla yönetir; diğer kısayollar da arka planda çalışmaz

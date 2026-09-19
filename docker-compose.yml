@@ -35,7 +35,8 @@ services:
       - ./shared/src:/app/lib/todo_shared
 
   web:
-    build: ./web
+    # dev: yerel build çıktısı (web/public) mount edilir; prod imajı web/Dockerfile (kök context)
+    image: nginx:1.27-alpine
     ports: ["${WEB_HOST_PORT:-28000}:80"]
     volumes: [./web/public:/usr/share/nginx/html:ro]
 

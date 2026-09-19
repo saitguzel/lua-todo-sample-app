@@ -150,9 +150,14 @@ fake.timer = {
 }
 fake.location = {
   hash = function() return fake._hash or "#/" end,
-  setHash = function(h) fake._hash = h end,
+  -- tarayıcıdaki gibi hash değişimi hashchange olayını tetikler (burada senkron)
+  setHash = function(h)
+    local changed = fake._hash ~= h
+    fake._hash = h
+    if changed and fake.hash_cb then fake.hash_cb(h) end
+  end,
   replace = function(h) fake._hash = h end,
-  onHashChange = function() end,
+  onHashChange = function(fn) fake.hash_cb = fn end,
 }
 fake.keyboard = { onKey = function() end }
 fake.media = {
@@ -168,7 +173,9 @@ fake.to_local_input = function(iso) return iso and iso:sub(1, 16) or "" end
 fake.random_password = function(len) return string.rep("x", len or 16) end
 fake.clipboard = function() end
 fake.confetti = function() fake.calls[#fake.calls + 1] = { confetti = true } end
-fake.log = function() end
+fake.log = function(level, msg)
+  if level == "error" then fake.errors[#fake.errors + 1] = msg end
+end
 fake.config = function() return "{}" end
 
 -- --- JSON: glue.js JSON.parse'ın saf Lua karşılığı (null → nil, reviver ile aynı) ------
@@ -272,6 +279,9 @@ function fake.reset()
   fake.active_data_id = nil
   fake.modal_open = false
   fake.download_error = nil
+  fake.errors = {}
+  fake.hash_cb = nil
+  fake.prefers_dark = false
 end
 fake.reset()
 
