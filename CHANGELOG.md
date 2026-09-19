@@ -4,7 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/) · Sürümleme:
 
 ## [Unreleased]
 
+### Changed
+
+- Frontend API'ye her zaman aynı origin'den gider (`${location.origin}/api/v1`); dev web nginx'i
+  (`deploy/web/dev.conf`) `/api/`'yi api'ye aktarır → uygulama localhost, sunucu IP'si veya domain ile açılabilir,
+  CSP `connect-src 'self'`
+- Dev compose: web `nginx:1.27-alpine` + sabit IP (`172.31.250.10`), api `TRUSTED_PROXIES` bu IP'yi içerir → audit ve
+  rate limit gerçek istemci IP'sini görür
+- `CORS_ORIGINS` varsayılanına `http://127.0.0.1:28000` eklendi
+
 ### Fixed
+
+- CORS header'ları 404/405/413 gibi middleware zinciri dışındaki hata yanıtlarında yoktu (tarayıcı "ağ hatası"
+  görüyordu) → `header_filter_by_lua` ile her yanıta; izinsiz origin'de de `Vary: Origin`
+- `deploy/web/nginx.conf` içindeki `types {}` bloğu MIME haritasını eziyordu (`index.html` indiriliyordu)
 
 - Migration runner ve `with_transaction`: pgmoon'un başarılı sorguda döndürdüğü ikinci değer (`num_queries`)
   hata sanılıyordu → hiçbir migration/transaction çalışmıyordu

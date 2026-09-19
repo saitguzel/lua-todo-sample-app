@@ -39,11 +39,28 @@ docs/           fazlar/ (spesifikasyon), operations.md (runbook), security-check
 
 ```bash
 make setup && make up && make db.migrate db.seed
-# API:     http://localhost:28080/api/v1/health
-# Web:     http://localhost:28000
-# Swagger: http://localhost:28080/api/v1/swagger
+# Web:     http://localhost:28000               (API aynı adresten: /api/v1 → web nginx proxy'si)
+# API:     http://localhost:28080/api/v1/health (doğrudan; curl/test için)
+# Swagger: http://localhost:28000/api/v1/swagger
 # MailHog: http://localhost:28025
 ```
+
+### Sunucu IP'si veya domain ile erişim
+
+Frontend API'ye sayfanın açıldığı adresten gider (`<adres>/api/v1`), web nginx'i isteği api konteynerine aktarır;
+bu yüzden `http://<sunucu-ip>:28000` ek ayar olmadan çalışır ve CORS gerekmez
+(ayrıntı: [00-genel-bakis §6.2](docs/fazlar/00-genel-bakis.md#62-erişim-adresi-localhost--ip--domain--aynı-origin)).
+Reset e-postası linki ve Swagger sunucu adresi de o adresi göstersin diye `.env`'de:
+
+```bash
+APP_BASE_URL=http://<sunucu-ip>:28000
+WEB_BASE_URL=http://<sunucu-ip>:28000
+```
+
+sonra `docker compose up -d --force-recreate api`.
+
+> ⚠️ Dev yığını demo hesapları login ekranında gösterir ve HTTP'dir. Herkese açık bir IP'de güvenlik duvarı / IP
+> kısıtı olmadan açmayın; dış erişim için prod yığınını kullanın (aşağıda).
 
 Varsayılan kullanıcılar (yalnızca `SEED_DEFAULTS=true`, geliştirme):
 

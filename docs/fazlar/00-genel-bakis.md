@@ -58,7 +58,10 @@ Kullanıcı rolleri: `admin`, `todouser`.
 
 1. **nginx** isteği `location /api/` bloğuna düşürür → `content_by_lua_block { require("lapis").serve("app") }`.
 2. **Lapis** route eşleşmesi yapar; route, `router.lua`'da `chain(middlewares, handler)` ile sarılmıştır.
-3. **cors**: `Origin` whitelist kontrolü; `OPTIONS` ise `204` döner ve zincir biter.
+3. **cors**: `OPTIONS` preflight'ı yanıtlar — `Origin` whitelist'teyse `204`, değilse `403`; zincir biter.
+   Ortak CORS header'ları (`Access-Control-Allow-Origin`, `Vary: Origin`, `Access-Control-Expose-Headers`) zincirde
+   değil, server seviyesindeki `header_filter_by_lua` fazında basılır → 404/405/413 gibi zincir dışı hatalar da
+   tarayıcıda okunabilir.
 4. **logger**: `ngx.ctx.req_id = random.uuid4()`, `ngx.ctx.started_at = ngx.now()`; response header `X-Request-Id`.
 5. **audit_context**: `ngx.ctx.audit = { ip = ..., user_agent = ... }` (X-Forwarded-For yalnızca güvenilir proxy'den).
 6. **auth**: `Authorization: Bearer` → `jwt.verify` → `typ == "access"` → denylist kontrolü → `ngx.ctx.identity = { user_id, email, role, jti, exp }`.
@@ -159,8 +162,8 @@ edilemedi / beklenmeyen şekil) — `web/src/fetch.lua` üretir; sunucu bunları
 |---|---|---|---|
 | `APP_ENV` | `development` | enum | `development\|test\|production` |
 | `APP_PORT` | `8080` | int | 1–65535 — **konteyner içi** nginx `listen` portu; host portu değil (§6.1) |
-| `APP_BASE_URL` | `http://localhost:28080` | url | Swagger `servers` |
-| `WEB_BASE_URL` | `http://localhost:28000` | url | Reset e-posta linkinin frontend adresi |
+| `APP_BASE_URL` | `http://localhost:28080` | url | Swagger `servers`; IP/domain ile erişimde o adres (§6.2) |
+| `WEB_BASE_URL` | `http://localhost:28000` | url | Reset e-posta linkinin frontend adresi; IP/domain ile erişimde o adres (§6.2) |
 | `DB_HOST` | `postgres` | string | zorunlu |
 | `DB_PORT` | `5432` | int | |
 | `DB_NAME` | `todo` | string | zorunlu |
@@ -211,7 +214,7 @@ portları **28xxx bloğundan** seçildi (Linux geçici port aralığı 32768–6
 | Değişken | Varsayılan | Tip | Doğrulama / Not |
 |---|---|---|---|
 | `API_HOST_PORT` | `28080` | int | → api konteyneri `8080`; `APP_BASE_URL` ile tutarlı olmalı |
-| `WEB_HOST_PORT` | `28000` | int | → web konteyneri `80`; `WEB_BASE_URL` ve `CORS_ORIGINS` ile tutarlı olmalı |
+| `WEB_HOST_PORT` | `28000` | int | → web konteyneri `80`; `WEB_BASE_URL` ile tutarlı olmalı; `/api/` bu port üzerinden api'ye proxy'lenir (§6.2) |
 | `DB_HOST_PORT` | `25432` | int | → postgres `5432`; yalnızca `127.0.0.1`'e bağlanır |
 | `MAILHOG_UI_HOST_PORT` | `28025` | int | → mailhog UI `8025`; yalnızca `127.0.0.1`'e bağlanır; SMTP `1025` host'a açılmaz |
 
@@ -226,6 +229,27 @@ Prod (F18): yalnızca `proxy` servisi host'a açılır: `${HTTP_PORT:-80}` / `${
 makinesinde denemek için `HTTP_PORT=28088 HTTPS_PORT=28443` kullanılır (80/443 burada başka bir reverse proxy'de dolu).
 `HTTP_PORT`/`HTTPS_PORT` yalnızca `docker-compose.prod.yml` ve `.env.prod` içindedir.
 
+
+### 6.2 Erişim Adresi (localhost / IP / domain) — Aynı Origin
+
+Frontend API'ye **her zaman sayfanın açıldığı origin'den** gider: `apiBase = ${location.origin}/api/v1`
+(`web/static/boot.js`). Böylece uygulama `localhost`, sunucu IP'si veya domain ile açılsa da ek ayar gerekmez ve
+tarayıcı açısından istek aynı origin'dir → CORS/preflight devreye girmez, CSP `connect-src 'self'` yeterlidir.
+
+| Ortam | `/api/` isteğini api'ye kim aktarır | Not |
+|---|---|---|
+| Dev | web konteyneri nginx'i — `deploy/web/dev.conf` (`proxy_pass http://api:8080`) | `docker-compose.yml` bu dosyayı web'e mount eder |
+| Prod | `proxy` servisi — `deploy/proxy/nginx.conf` | web imajı yalnızca statik dosya sunar |
+
+- `API_HOST_PORT` (28080) doğrudan erişim yalnızca curl, entegrasyon testleri ve bench içindir. Başka bir origin'deki
+  tarayıcı istemcisi bu porta giderse `CORS_ORIGINS` gerekir.
+- **Gerçek istemci IP'si:** dev ağında web konteyneri sabit IP alır (`172.31.250.10`, alt ağ `172.31.250.0/24`);
+  compose api servisine `TRUSTED_PROXIES=127.0.0.1,172.31.250.10` verir (`.env`'deki değeri ezer). Audit ve login rate
+  limit'i `X-Forwarded-For` üzerinden gerçek istemci IP'sini görür (F8). Prod'da aynı rolü sabit proxy IP'si üstlenir (F18).
+- **IP ile erişim:** `.env` içinde `APP_BASE_URL` ve `WEB_BASE_URL` → `http://<sunucu-ip>:28000` yapılır (reset e-postası
+  linki ve Swagger `servers` bu adresi gösterir); `.env.example` localhost değerleriyle kalır.
+- **Güvenlik:** dev yığını (demo hesaplar login ekranında görünür, HTTP, `SEED_DEFAULTS=true`) herkese açık bir IP'de
+  güvenlik duvarı/IP kısıtı olmadan açılmaz. Dış erişim gerekiyorsa prod yığını (HTTPS, demo hesap yok) kullanılır.
 ---
 
 ## 7. Sayfa Anahtarları ve Varsayılan RBAC Matrisi

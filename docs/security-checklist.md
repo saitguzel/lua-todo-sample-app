@@ -5,6 +5,12 @@ Canlıya çıkıştan önce ve her minor sürümde gözden geçirilir. Kaynak: [
 İşaretler: `[x]` doğrulandı (kanıt yanında) · `[ ]` açık (sahibi/nedeni yanında) · **İstisna** = bilinçli, gerekçeli.
 Son gözden geçirme: 2026-09-19 (v0.1.0 öncesi, staging denemesi `todo-prod-test`).
 
+## Geliştirme ortamı
+
+- [ ] Dev yığını (`docker-compose.yml`: demo hesaplar login ekranında, HTTP, `SEED_DEFAULTS=true`, API 28080 tüm
+      arayüzlerde) herkese açık IP'de güvenlik duvarı / IP kısıtı olmadan çalışmıyor — sahibi: sunucu yöneticisi
+      (00 §6.2). Dış erişim yalnızca prod yığınıyla.
+
 ## Kimlik doğrulama ve oturum
 
 - [x] `JWT_SECRET` ≥ 32 byte rastgele (`openssl rand -base64 48`), Docker secrets dosyasında (`JWT_SECRET_FILE`), repoda yok

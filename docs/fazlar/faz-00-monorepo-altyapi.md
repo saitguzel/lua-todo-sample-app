@@ -81,8 +81,8 @@ Servisler:
 |---|---|---|---|
 | `postgres` | `postgres:15-alpine` | `127.0.0.1:${DB_HOST_PORT:-25432}:5432` | `healthcheck: pg_isready -U $DB_USER -d $DB_NAME`, volume `pgdata` |
 | `mailhog` | `mailhog/mailhog:v1.0.1` | `1025` (SMTP, yalnızca iç ağ), `127.0.0.1:${MAILHOG_UI_HOST_PORT:-28025}:8025` (UI) | Reset e-postalarını dev'de yakalar |
-| `api` | `build: ./api` | `${API_HOST_PORT:-28080}:8080` | `depends_on: postgres: condition: service_healthy`; `env_file: .env`; volume mount: `./api/src`, `./api/conf`, `./api/migrations`, `./api/seeds`, `./shared/src` (→ `/app/lib/todo_shared`) → `make api.reload` ile anında yeniden yükleme (bkz. F3) |
-| `web` | `build: ./web` | `${WEB_HOST_PORT:-28000}:80` | Volume: `./web/public` |
+| `api` | `build: { context: ., dockerfile: api/Dockerfile, target: dev }` | `${API_HOST_PORT:-28080}:8080` | `environment: TRUSTED_PROXIES` (web proxy IP'si, 00 §6.2); `depends_on: postgres: condition: service_healthy`; `env_file: .env`; volume mount: `./api/src`, `./api/conf`, `./api/migrations`, `./api/seeds`, `./shared/src` (→ `/app/lib/todo_shared`) → `make api.reload` ile anında yeniden yükleme (bkz. F3) |
+| `web` | `nginx:1.27-alpine` | `${WEB_HOST_PORT:-28000}:80` | Volume: `./web/public` + `deploy/web/dev.conf` (`/api/` → api proxy); sabit IP `172.31.250.10` (00 §6.2). Prod imajı `web/Dockerfile` (F17/F18) |
 
 Taslak:
 
@@ -109,9 +109,11 @@ services:
     ports: ["127.0.0.1:${MAILHOG_UI_HOST_PORT:-28025}:8025"]   # SMTP 1025 host'a açılmaz, api iç ağdan erişir
 
   api:
-    build: ./api
+    build: { context: ., dockerfile: api/Dockerfile, target: dev }   # F18: çok aşamalı imaj
     env_file: .env
     ports: ["${API_HOST_PORT:-28080}:8080"]   # konteyner içi APP_PORT=8080 sabit
+    environment:
+      TRUSTED_PROXIES: "127.0.0.1,172.31.250.10"   # web nginx'i X-Forwarded-For iletir (00 §6.2)
     depends_on:
       postgres: { condition: service_healthy }
     volumes:
@@ -123,9 +125,20 @@ services:
       - ./shared/src:/app/lib/todo_shared
 
   web:
-    build: ./web
+    image: nginx:1.27-alpine        # dev: yerel build çıktısı; prod imajı web/Dockerfile (kök context)
     ports: ["${WEB_HOST_PORT:-28000}:80"]
-    volumes: [./web/public:/usr/share/nginx/html:ro]
+    volumes:
+      - ./web/public:/usr/share/nginx/html:ro
+      - ./deploy/web/dev.conf:/etc/nginx/conf.d/default.conf:ro   # /api/ → api:8080 (aynı origin)
+    depends_on: [api]
+    networks:
+      default:
+        ipv4_address: 172.31.250.10
+
+networks:
+  default:
+    ipam:
+      config: [{ subnet: 172.31.250.0/24 }]
 
 volumes:
   pgdata:
@@ -186,7 +199,7 @@ SMTP_FROM=no-reply@todoapp.local
 SMTP_TLS=false
 
 # === HTTP ===
-CORS_ORIGINS=http://localhost:28000
+CORS_ORIGINS=http://localhost:28000,http://127.0.0.1:28000
 TRUSTED_PROXIES=127.0.0.1
 
 # === Log ===

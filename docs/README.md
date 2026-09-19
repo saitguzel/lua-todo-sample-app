@@ -55,8 +55,8 @@ Geliştirme makinesinde 80/443, 3000 ve 8080 başka projelerde dolu olduğundan 
 
 | Servis | Adres | Env |
 |---|---|---|
-| API + Swagger | http://localhost:28080/api/v1 · `/api/v1/swagger` | `API_HOST_PORT` |
-| Web | http://localhost:28000 | `WEB_HOST_PORT` |
+| Web (+ API proxy'si `/api/v1`) | http://localhost:28000 · `/api/v1/swagger` — IP/domain ile de açılır ([§6.2](fazlar/00-genel-bakis.md#62-erişim-adresi-localhost--ip--domain--aynı-origin)) | `WEB_HOST_PORT` |
+| API (doğrudan; curl/test) | http://localhost:28080/api/v1 | `API_HOST_PORT` |
 | PostgreSQL | `127.0.0.1:25432` | `DB_HOST_PORT` |
 | MailHog UI | http://127.0.0.1:28025 | `MAILHOG_UI_HOST_PORT` |
 

@@ -48,7 +48,7 @@ local SPEC = {
   APP_PORT  = { type = "int", default = 8080, min = 1, max = 65535 },
   DB_PASSWORD = { type = "string", required = true, secret = true },
   JWT_SECRET  = { type = "string", required = true, secret = true, min_len = 32 },
-  CORS_ORIGINS = { type = "csv", default = "http://localhost:28000" },
+  CORS_ORIGINS = { type = "csv", default = "http://localhost:28000,http://127.0.0.1:28000" },
   -- ... 00-genel-bakis §6'daki tüm değişkenler
 }
 
@@ -391,24 +391,35 @@ return _M
 
 ```lua
 -- CORS: yalnızca CORS_ORIGINS listesindeki origin'lere izin verir.
-function _M.handle(self)
+-- handle: zincirin ilk halkası, yalnızca preflight'ı sonlandırır
+function _M.handle()
+  if ngx.req.get_method() ~= "OPTIONS" then return nil end
   local origin = ngx.var.http_origin
   if not origin then return nil end                       -- tarayıcı dışı istemci
-  if not config.cors_origins[origin] then
-    if ngx.req.get_method() == "OPTIONS" then return { status = 403, json = ... } end
-    return nil                                             -- header eklemeden devam; tarayıcı engeller
-  end
+  if not allowed(origin) then return { status = 403, json = ... } end
+  ngx.header["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  ngx.header["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+  ngx.header["Access-Control-Max-Age"] = "600"
+  return { status = 204, layout = false }
+end
+
+-- header_filter: lua.conf server bloğunda header_filter_by_lua_block ile her yanıta (hata dahil)
+function _M.header_filter()
+  local origin = ngx.var.http_origin
+  if not origin then return end
+  ngx.header["Vary"] = "Origin"                            -- izinsiz origin'de de cache ayrışmalı
+  if not allowed(origin) then return end                   -- header yok → tarayıcı engeller
   ngx.header["Access-Control-Allow-Origin"] = origin
-  ngx.header["Vary"] = "Origin"
   ngx.header["Access-Control-Expose-Headers"] = "X-Request-Id, Retry-After, Content-Disposition"
-  if ngx.req.get_method() == "OPTIONS" then
-    ngx.header["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    ngx.header["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-    ngx.header["Access-Control-Max-Age"] = "600"
-    return { status = 204, layout = false }
-  end
 end
 ```
+
+Neden iki parça: zincir yalnızca Lapis route'larında çalışır; 404 handler, Lapis `respond_to` 405'i ve nginx
+`error_page 413` zincirin dışında kalır. Header'lar handler'da basılsaydı bu hatalar tarayıcıda "ağ hatası" olarak
+görünürdü (JSON gövde okunamaz). `header_filter` fazı her yanıtta çalışır.
+
+Frontend normalde API'ye aynı origin'den gider (00 §6.2); CORS yalnızca API portuna başka bir origin'den doğrudan
+erişimde devreye girer.
 
 `Access-Control-Allow-Credentials` **yok**: kimlik doğrulama cookie değil Bearer header ile → CSRF yüzeyi yok.
 
@@ -484,7 +495,8 @@ Tam tasarım ve testleri F4'te.
 - [ ] Postgres durdurulunca `/health` → `503`, `"db":"down"`; API çökmez.
 - [ ] `curl localhost:28080/api/v1/yok` → `404` JSON `{"error":{"code":"NOT_FOUND",...,"req_id":...}}`.
 - [ ] Kasıtlı `error("x")` atan test route'u → `500 INTERNAL_ERROR`, gövdede stack yok, logda traceback var.
-- [ ] `OPTIONS` + izinli `Origin` → `204` + CORS header'ları; izinsiz origin → CORS header yok.
+- [ ] `OPTIONS` + izinli `Origin` → `204` + CORS header'ları; izinsiz origin → `403`, `Allow-Origin` yok.
+- [ ] İzinli `Origin` ile 401/404/405/413 hata yanıtlarında da `Access-Control-Allow-Origin` var (`header_filter`).
 - [ ] `LOG_FORMAT=text` → text satır; `json` → geçerli JSON (`jq .` ile parse edilir).
 - [ ] 1.5 MiB body → `413 PAYLOAD_TOO_LARGE` (nginx'in HTML 413'ü değil — `error_page 413 = @json413` ile JSON).
 - [ ] `query.lua` birim testi: builder `$?` → `$1..$n` doğru numaralanır; `with_transaction` hata durumunda ROLLBACK çağırır (pgmoon mock).

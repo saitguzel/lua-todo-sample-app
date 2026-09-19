@@ -264,7 +264,7 @@ boot().catch((err) => {
     default-src 'self';
     script-src 'self' 'wasm-unsafe-eval' https://cdn.tailwindcss.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' http://localhost:28080;
+    connect-src 'self';
     img-src 'self' data:;
     font-src 'self';
     object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'">
@@ -277,7 +277,7 @@ boot().catch((err) => {
         (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
       document.documentElement.dataset.theme = t;
     } catch {}
-    window.__TODO_CONFIG__ = { apiBase: "http://localhost:28080/api/v1" };
+    window.__TODO_CONFIG__ = { apiBase: `${location.origin}/api/v1` };
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./styles.css">
@@ -299,7 +299,7 @@ boot().catch((err) => {
 - `'wasm-unsafe-eval'`: `WebAssembly.instantiate` için zorunlu; `'unsafe-eval'` **verilmez**.
 - Inline `<script>` (tema + config) CSP'de `'self'` ile çalışmaz → iki seçenek: (a) SHA-256 hash'i CSP'ye eklemek (`'sha256-...'`), (b) bu kodu `boot.js` dosyasına taşımak. **Karar: (b)** — `public/boot.js`, hash bakımı gerektirmez. Yukarıdaki inline blok uygulamada `<script src="./boot.js">` olur.
 - Tailwind Play CDN kendi `<style>` enjekte eder → `style-src 'unsafe-inline'` dev'de gerekli. Prod'da (F18) derlenmiş CSS ile `'unsafe-inline'` kaldırılır.
-- `connect-src` ve `apiBase` dev değerleri; prod'da aynı origin (`/api/v1`) üzerinden reverse proxy → `connect-src 'self'` yeterli olur. Build script `API_BASE` ortam değişkeniyle `boot.js`'i üretir.
+- `apiBase` dev ve prod'da aynı: sayfanın origin'i + `/api/v1` (00 §6.2). Dev'de web nginx'i (`deploy/web/dev.conf`), prod'da proxy `/api/`'yi api'ye aktarır → `connect-src 'self'` yeterli; uygulama localhost, IP veya domain ile açılabilir.
 - Tercih edilen: CSP'yi meta yerine **HTTP header** olarak web sunucusu (F18 nginx) göndermek; meta, dev sunucusu (`serve`) header ekleyemediği için.
 
 ### 4.5 `web/public/styles.css`
