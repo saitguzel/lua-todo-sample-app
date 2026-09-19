@@ -12,11 +12,45 @@ _M.title = "Giriş"
 _M.layout = false
 _M.public = true
 
+-- Demo hesaplar yalnızca production olmayan build'de (build_info.demo; prod'da SEED_DEFAULTS=false → hesaplar yok)
+local DEMO_ACCOUNTS = {
+  { label = "Yönetici", email = "admin@todoapp.local", password = "Admin123!" },
+  { label = "Kullanıcı", email = "user@todoapp.local", password = "User123!" },
+}
+local info_ok, build_info = pcall(require, "build_info")
+_M.show_demo = info_ok and type(build_info) == "table" and build_info.demo == true
+
+local function demo_box()
+  local rows = {}
+  for _, acc in ipairs(DEMO_ACCOUNTS) do
+    rows[#rows + 1] = dom.li({},
+      dom.button({
+        type = "button",
+        class = "w-full text-left px-3 py-2 min-h-11 rounded-[var(--radius)] hover:bg-[var(--bg)] focus:bg-[var(--bg)]",
+        ["aria-label"] = acc.label .. " hesabıyla doldur: " .. acc.email,
+        onclick = function()
+          dom.set_value("email", acc.email)
+          dom.set_value("password", acc.password)
+          dom.focus("login-submit")
+        end,
+      },
+        dom.span({ class = "font-medium" }, acc.label .. ": "),
+        dom.code({}, acc.email), " / ", dom.code({}, acc.password)))
+  end
+  return dom.section({
+    class = "w-full max-w-sm mt-4 text-sm border border-dashed border-[var(--border)] rounded-[var(--radius)] p-3",
+    ["aria-labelledby"] = "demo-title",
+  },
+    dom.h2({ id = "demo-title", class = "font-semibold mb-1" }, "Demo hesaplar"),
+    dom.p({ class = "text-xs text-[var(--fg-muted)] mb-2" }, "Tıklayınca giriş alanları doldurulur."),
+    dom.ul({ role = "list" }, rows))
+end
+
 function _M.render(state, dispatch)
   local errors = (state.ui.form_errors or {}).login or {}
   local busy = state.ui.busy.login or false
 
-  return dom.main({ class = "min-h-screen flex items-center justify-center p-4", id = "main", tabindex = "-1" },
+  return dom.main({ class = "min-h-screen flex flex-col items-center justify-center p-4", id = "main", tabindex = "-1" },
     dom.form({
       class = "w-full max-w-sm bg-[var(--bg-elev)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow)] p-6",
       ["aria-labelledby"] = "login-title",
@@ -51,13 +85,14 @@ function _M.render(state, dispatch)
         }),
         errors.password and dom.p({ id = "password-err", class = "field-error" }, errors.password[1]) or nil),
       dom.button({
-        type = "submit",
+        type = "submit", id = "login-submit",
         class = "w-full py-2 rounded-[var(--radius)] bg-[var(--primary)] text-[var(--primary-fg)] font-medium",
         ["aria-busy"] = tostring(busy),
         disabled = busy and "disabled" or nil,
       }, busy and "Gönderiliyor…" or "Giriş yap"),
       dom.div({ class = "mt-4 text-center text-sm" },
-        dom.a({ href = "#/forgot-password", class = "text-[var(--primary)] underline" }, "Şifremi unuttum"))))
+        dom.a({ href = "#/forgot-password", class = "text-[var(--primary)] underline" }, "Şifremi unuttum"))),
+    _M.show_demo and demo_box())
 end
 
 function _M.submit(email, password, dispatch)

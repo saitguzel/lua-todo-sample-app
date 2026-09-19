@@ -27,7 +27,12 @@ WASM=$(hashname "$OUT/app.wasm.tmp" app wasm)
 # --- 2. Lua bundle'ları: admin view'ları ayrı (todouser hiç indirmez — F17 #7) ---
 MIN=""; [ "$MODE" = "production" ] && MIN="--minify"
 ADMIN_VIEWS="src/views/users.lua,src/views/rbac_matrix.lua,src/views/audit_logs.lua"
-node scripts/bundle-lua.mjs $MIN --exclude "$ADMIN_VIEWS" src= ../shared/src=todo_shared. > "$OUT/bundle.tmp"
+# build_info: derleme modu bundle'a gömülür; demo hesap kutusu yalnızca production dışında (login.lua)
+DEMO=true; [ "$MODE" = "production" ] && DEMO=false
+printf -- '-- build-wasm.sh tarafından üretilir\nreturn { mode = "%s", demo = %s }\n' "$MODE" "$DEMO" > "$OUT/build_info.lua"
+node scripts/bundle-lua.mjs $MIN --exclude "$ADMIN_VIEWS" src= ../shared/src=todo_shared. \
+  "$OUT/build_info.lua=build_info" > "$OUT/bundle.tmp"
+rm -f "$OUT/build_info.lua"
 BUNDLE=$(hashname "$OUT/bundle.tmp" bundle json)
 node scripts/bundle-lua.mjs $MIN src/views/users.lua=views.users src/views/rbac_matrix.lua=views.rbac_matrix \
   src/views/audit_logs.lua=views.audit_logs > "$OUT/bundle-admin.tmp"

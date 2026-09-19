@@ -403,8 +403,11 @@ local function select_filter(label, key, current, options)
   for _, o in ipairs(options) do
     opts[#opts + 1] = dom.option({ value = o[1], selected = current == o[1] and "selected" or nil }, o[2])
   end
-  return dom.label({ class = "flex flex-col text-xs text-[var(--fg-muted)]" }, label,
+  local id = "todo-filter-" .. key
+  return dom.div({ class = "flex flex-col" },
+    dom.label({ ["for"] = id, class = "text-xs text-[var(--fg-muted)]" }, label),
     dom.select({
+      id = id,
       class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]",
       onchange = function(e) set_filters({ [key] = e.value or "" }) end,
     }, opts))
@@ -419,7 +422,8 @@ function _M.render(state)
     role = "search", ["aria-label"] = "Todo filtreleri",
     class = "flex flex-wrap items-end gap-2 mb-4",
   },
-    dom.label({ class = "flex flex-col text-xs text-[var(--fg-muted)] flex-1 min-w-40" }, "Ara",
+    dom.div({ class = "flex flex-col flex-1 min-w-40" },
+      dom.label({ ["for"] = "todo-search", class = "text-xs text-[var(--fg-muted)]" }, "Ara"),
       dom.input({
         type = "search", id = "todo-search", placeholder = "Başlık veya açıklama… (/)",
         ["aria-keyshortcuts"] = "/",
@@ -435,8 +439,10 @@ function _M.render(state)
     select_filter("Durum", "status", f.status,
       { { "pending", "Bekliyor" }, { "in_progress", "Devam ediyor" }, { "completed", "Tamamlandı" } }),
     select_filter("Öncelik", "priority", f.priority, { { "high", "Yüksek" }, { "medium", "Orta" }, { "low", "Düşük" } }),
-    dom.label({ class = "flex flex-col text-xs text-[var(--fg-muted)]" }, "Sıralama",
+    dom.div({ class = "flex flex-col" },
+      dom.label({ ["for"] = "todo-sort", class = "text-xs text-[var(--fg-muted)]" }, "Sıralama"),
       dom.select({
+        id = "todo-sort",
         class = "px-3 py-2 min-h-11 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg)] text-sm text-[var(--fg)]",
         onchange = function(e) set_filters({ sort = e.value }) end,
       },

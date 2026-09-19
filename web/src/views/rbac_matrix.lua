@@ -96,7 +96,7 @@ function _M.render(state, dispatch)
           ["aria-label"] = role .. " rolü için " .. page .. " erişimi",
           ["aria-describedby"] = locked and "lock-note" or nil,
           onchange = function(e)
-            toggle_cell(role, page, e.checked == true)
+            app.spawn(toggle_cell, role, page, e.checked == true) -- API yield eder: coroutine şart
           end,
         }),
         locked and " 🔒" or nil)
