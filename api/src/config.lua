@@ -34,7 +34,7 @@ local SPEC = {
   SMTP_PASSWORD = { type = "string", default = "", secret = true },
   SMTP_FROM = { type = "email", default = "no-reply@todoapp.local" },
   SMTP_TLS = { type = "bool", default = false },
-  CORS_ORIGINS = { type = "csv", default = "http://localhost:28000" },
+  CORS_ORIGINS = { type = "csv", default = "http://localhost:28000,http://127.0.0.1:28000" },
   TRUSTED_PROXIES = { type = "csv", default = "127.0.0.1" },
   LOG_FORMAT = { type = "enum", values = { "json", "text" }, default = "json" },
   LOG_LEVEL = { type = "enum", values = { "debug", "info", "warn", "error" }, default = "info" },

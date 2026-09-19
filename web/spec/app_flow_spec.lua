@@ -33,7 +33,7 @@ end
 local function urls()
   local out = {}
   for _, c in ipairs(fake.calls) do
-    out[#out + 1] = (c.method or "") .. " " .. (c.url or ""):gsub("^http://[^/]+/api/v1", "")
+    out[#out + 1] = (c.method or "") .. " " .. (c.url or ""):gsub("^https?://[^/]+", ""):gsub("^/api/v1", "")
   end
   return out
 end

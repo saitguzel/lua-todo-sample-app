@@ -8,7 +8,7 @@ local json = require("json")
 local api = {}
 
 local cfg = {
-  base = "http://localhost:28080/api/v1",
+  base = "/api/v1",
   get_tokens = function() return nil end,
   set_tokens = function() end,
   on_logout = function() end,

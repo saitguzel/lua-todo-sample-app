@@ -57,17 +57,17 @@ cp static/boot.js "$OUT/boot.tmp";     BOOT=$(hashname "$OUT/boot.tmp" boot js)
 cp static/styles.css "$OUT/styles.tmp"; STYLES=$(hashname "$OUT/styles.tmp" styles css)
 
 # --- 5. Tailwind: dev → Play CDN; prod → CLI ile derlenmiş CSS (F12 kararı #12) ---
+# API her zaman aynı origin (/api/v1) → connect-src 'self' yeterli
+CSP_CONNECT=""
 if [ "$MODE" = "production" ]; then
   npx --no-install tailwindcss -c tailwind.config.cjs -i static/tailwind.input.css -o "$OUT/tw.tmp" --minify 2>/dev/null
   TW=$(hashname "$OUT/tw.tmp" tailwind css)
   TAILWIND="<link rel=\"stylesheet\" href=\"./dist/$TW\">"
   CSP_SCRIPT=""
-  CSP_CONNECT=""
 else
   cp static/tailwind.config.js "$OUT/twc.tmp"; TWC=$(hashname "$OUT/twc.tmp" tailwind.config js)
   TAILWIND="<script src=\"https://cdn.tailwindcss.com\"></script><script src=\"./dist/$TWC\"></script>"
   CSP_SCRIPT="https://cdn.tailwindcss.com"
-  CSP_CONNECT="http://localhost:28080"
 fi
 
 # --- 6. index.html: şablondan üretilir (kaynak dosya değişmez) ---

@@ -8,7 +8,6 @@ try {
     : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 } catch { /* localStorage engelli */ }
 
-// Prod'da build aynı origin'i kullanır (/api/v1); dev'de API portu ayrıdır.
-window.__TODO_CONFIG__ = { apiBase: location.port === "28000" || location.hostname === "localhost"
-  ? "http://localhost:28080/api/v1"
-  : `${location.origin}/api/v1` };
+// API her zaman aynı origin'den (/api/v1): dev'de web nginx, prod'da proxy api'ye aktarır.
+// Böylece uygulama localhost, IP veya domain ile açılsa da çalışır; CORS gerekmez.
+window.__TODO_CONFIG__ = { apiBase: `${location.origin}/api/v1` };

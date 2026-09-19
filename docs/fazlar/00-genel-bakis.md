@@ -186,7 +186,7 @@ edilemedi / beklenmeyen şekil) — `web/src/fetch.lua` üretir; sunucu bunları
 | `SMTP_PASSWORD` | (boş) | string | |
 | `SMTP_FROM` | `no-reply@todoapp.local` | email | |
 | `SMTP_TLS` | `false` | bool | STARTTLS |
-| `CORS_ORIGINS` | `http://localhost:28000` | csv | prod'da `*` reddedilir |
+| `CORS_ORIGINS` | `http://localhost:28000,http://127.0.0.1:28000` | csv | prod'da `*` reddedilir |
 | `TRUSTED_PROXIES` | `127.0.0.1` | csv | X-Forwarded-For güveni |
 | `LOG_FORMAT` | `json` | enum | `json\|text` |
 | `LOG_LEVEL` | `info` | enum | `debug\|info\|warn\|error` |

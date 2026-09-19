@@ -594,7 +594,7 @@ function app.start(opts)
 
   -- 2. api yapılandırması
   api.configure({
-    base = opts.apiBase or "http://localhost:28080/api/v1",
+    base = opts.apiBase or "/api/v1",
     get_tokens = function() return storage.get("auth") end,
     set_tokens = function(access, refresh)
       storage.set("auth", { access_token = access, refresh_token = refresh })
